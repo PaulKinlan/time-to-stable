@@ -40,16 +40,31 @@ const parseSelectedFeatures = (request: Request): Set<string> => {
   return new Set([...url.searchParams.keys()].filter(key => key.startsWith('feature-')).map(key => key.replace('feature-', '')));
 };
 
+const renderWarnings = (warnings: Array<string>): template => {
+  return template`<span class="warning"><ul>${warnings.map(warning => template`<li>${warning}</li>`)}</ul></span>`;
+};
+
 export default function render(request: Request, bcd): Response {
 
   const { __meta, browsers, api, css, html, javascript } = bcd;
   const featureConfig = { 'api': { name: "DOM API" }, 'css': { name: "CSS" }, 'html': { name: "HTML" }, 'javascript': { name: "JavaScript" } };
+
+  let warnings = new Array<string>();
 
   const helper = new Browsers(browsers);
 
   const selectedBrowsers = parseSelectedBrowsers(request);
   const selectedFeatures = parseSelectedFeatures(request);
 
+  let submitted = url.href.indexOf("?") > -1; // Likely submitted from form with nothing selected.
+
+  if (selectedBrowsers.size < 2 && submitted) {
+    warnings.push("Choose at least two browsers to compare");
+  }
+
+  if(selectedFeatures.size < 1 && submitted) {
+    warnings.push("Choose at least one feature to show");
+  }
   // only show the features selected.
   const filteredData = Object.fromEntries(Object.entries(bcd).filter(([key]) => selectedFeatures.has(key)));
 
@@ -82,7 +97,9 @@ export default function render(request: Request, bcd): Response {
     width: 100%;
   }
 
-  table.features {}
+  form span.warning {
+    color: red;
+  }
 
   </style>
   </head>
@@ -96,7 +113,8 @@ export default function render(request: Request, bcd): Response {
           <li><a href="/when-stable">Now Stable</a></li>
       </ol>
     </nav>
-    <form method=GET action="/when-stable" >
+    <form method=GET action="/when-stable">
+      ${renderWarnings(warnings)}
       <fieldset>
         <legend>Browsers</legend>
         ${renderBrowsers(browsers, selectedBrowsers)}
@@ -110,7 +128,7 @@ export default function render(request: Request, bcd): Response {
     </form>
 
     <h2>Stable APIs</h2>
-    <p>Below is a list of features that are all in ${browserList}, ordered reverse chronologically by when they became stable.</p>
+    <p>Below is a list of features that are in ${browserList}, ordered reverse chronologically by when they became stable (i.e, available in the last browser).</p>
     
    ${stableFeatures.map(feature => {
     let response;
