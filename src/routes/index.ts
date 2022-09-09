@@ -64,7 +64,7 @@ const renderWarnings = (warnings: Array<string>): template => {
   return template`<span class="warning"><ul>${warnings.map(warning => template`<li>${warning}</li>`)}</ul></span>`;
 };
 
-const renderResults = (bcd, browsers, selectedBrowsers: Set<String>, selectedFeatures: Set<String> ): template => {
+const renderResults = (bcd, browsers, browserList, selectedBrowsers: Set<String>, selectedFeatures: Set<String>): template => {
   // only show the features selected.
   const filteredData = Object.fromEntries(Object.entries(bcd).filter(([key]) => selectedFeatures.has(key)));
 
@@ -204,7 +204,7 @@ export default function render(request: Request, bcd): Response {
       <input type=submit>
     </form>
 
-    ${(submitted && warnings.length == 0) ? renderResults(bcd, browsers, selectedBrowsers, selectedFeatures) : ``}
+    ${(submitted && warnings.length == 0) ? renderResults(bcd, browsers, browserList, selectedBrowsers, selectedFeatures) : ``}
      
     <footer><p>Using BCD version: ${__meta.version}, updated on ${__meta.timestamp}</p></footer>
 	</body>
