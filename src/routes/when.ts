@@ -46,6 +46,7 @@ const renderWarnings = (warnings: Array<string>): template => {
 
 export default function render(request: Request, bcd): Response {
 
+  const url = new URL(request.url);
   const { __meta, browsers, api, css, html, javascript } = bcd;
   const featureConfig = { 'api': { name: "DOM API" }, 'css': { name: "CSS" }, 'html': { name: "HTML" }, 'javascript': { name: "JavaScript" } };
 
