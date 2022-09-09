@@ -61,11 +61,12 @@ const generateFirstInLastInCrossTab = (stableFeatures) => {
 };
 
 const renderWarnings = (warnings: Array<string>): template => {
-  return template`<ul>${warnings.map(warning => template`<li>${warning}</li>`)}</ul>`;
+  return template`<span class="warning"><ul>${warnings.map(warning => template`<li>${warning}</li>`)}</ul></span>`;
 };
 
 export default function render(request: Request, bcd): Response {
 
+  const url = new URL(request.url);
   const { __meta, browsers, api, css, html, javascript } = bcd;
   const featureConfig = { 'api': { name: "DOM API" }, 'css': { name: "CSS" }, 'html': { name: "HTML" }, 'javascript': { name: "JavaScript" } };
 
@@ -76,15 +77,15 @@ export default function render(request: Request, bcd): Response {
   const selectedBrowsers = parseSelectedBrowsers(request);
   const selectedFeatures = parseSelectedFeatures(request);
 
-  if (selectedBrowsers.length == 0) {
+  let submitted = url.href.indexOf("?") > -1; // Likely submitted from form with nothing selected.
+
+  if (selectedBrowsers.size == 0 && submitted) {
     warnings.push("Choose at least two browsers to compare");
   }
 
-  if(selectedFeatures.length == 0) {
+  if(selectedFeatures.size == 0 && submitted) {
     warnings.push("Choose at least one feature to show");
   }
-
-  console.log(warnings, selectedBrowsers, selectedFeatures)
 
   // only show the features selected.
   const filteredData = Object.fromEntries(Object.entries(bcd).filter(([key]) => selectedFeatures.has(key)));
@@ -118,6 +119,10 @@ export default function render(request: Request, bcd): Response {
 
   table.features {}
 
+  form span.warning {
+    color: red;
+  }
+
   </style>
   </head>
   <body>
@@ -131,7 +136,7 @@ export default function render(request: Request, bcd): Response {
       </ol>
     </nav>
     <form method=GET action="/" >
-      <span>${renderWarnings(warnings)}</span>
+      ${renderWarnings(warnings)}
       <fieldset>
         <legend>Browsers</legend>
         ${renderBrowsers(browsers, selectedBrowsers)}
