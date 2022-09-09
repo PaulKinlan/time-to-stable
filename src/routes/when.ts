@@ -46,7 +46,7 @@ export default function render(request: Request, bcd): Response {
     warnings.push("Choose at least two browsers to compare");
   }
 
-  if(selectedFeatures.size < 1 && submitted) {
+  if (selectedFeatures.size < 1 && submitted) {
     warnings.push("Choose at least one feature to show");
   }
   // only show the features selected.
@@ -144,7 +144,7 @@ export default function render(request: Request, bcd): Response {
 
     return response;
   }
-  ): ''} 
+  ) : ''} 
    </tbody>
   </table>
      
