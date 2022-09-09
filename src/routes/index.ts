@@ -64,6 +64,70 @@ const renderWarnings = (warnings: Array<string>): template => {
   return template`<span class="warning"><ul>${warnings.map(warning => template`<li>${warning}</li>`)}</ul></span>`;
 };
 
+const renderResults = (bcd, browsers, selectedBrowsers: Set<String>, selectedFeatures: Set<String> ): template => {
+  // only show the features selected.
+  const filteredData = Object.fromEntries(Object.entries(bcd).filter(([key]) => selectedFeatures.has(key)));
+
+  const stableFeatures = getStableFeatures(browsers, selectedBrowsers, filteredData);
+
+  const tablulateSummary = generateFirstInLastInCrossTab(stableFeatures);
+
+  return template`<h2>Stable APIs</h2>
+  <p>Below is a list of features that are in ${browserList}</p>
+  <h3>Summary</h3>
+  
+  <table class=tabular>
+    <caption>A count of the number of APIs that landed in A first and B last.</caption>
+    <thead>
+      <tr>
+        <th></th>
+        ${[...selectedBrowsers].map(key => template`<th>Last in ${helper.getBrowserName(key)}</th>`)} 
+      </tr>
+    </thead>
+    <tbody>
+      ${[...selectedBrowsers].map((firstInKey) => template`<tr>
+        <th scope="row">First in ${helper.getBrowserName(firstInKey)}</th>
+        ${[...selectedBrowsers].map((lastInKey) => template`<td>${tablulateSummary[firstInKey][lastInKey]}</td>`)}
+        </tr>`)} 
+    </tbody>
+  </table>
+
+  <h3>Raw Data</h3>
+  Quick Links: <ul>${[...selectedFeatures].map(feature => template`<li><a href="#${feature}-table">${feature}</a></li>`)}</ul>
+  ${stableFeatures.map(feature => {
+    let response;
+    let heading;
+    if (currentCategory != feature.category) {
+      heading = template`
+        ${(currentCategory == "") ? "" : "</tbody></table>"}
+        <h4>${feature.category} Data</h4>
+        <table id="${feature.category}-table">
+        <thead>
+          <tr>
+            <th>API</th>
+            <th>First Browser</th>
+            <th>Date</th>
+            <th>Last Browser</th>
+            <th>Date</th>
+            <th>Days</th>
+          </tr>
+        </thead>
+        <tbody>`
+    }
+
+    response = template`${(heading != undefined) ? heading : ""}<tr>
+    <td><a href="${feature.mdn_url}">${feature.api}</a></td><td>${helper.getBrowserName(feature.firstBrowser)}</td><td>${feature.firstDate.toLocaleDateString()}</td>
+    <td>${helper.getBrowserName(feature.lastBrowser)}</td><td>${feature.lastDate.toLocaleDateString()}</td><td>${feature.ageInDays}</td></tr>`
+
+    currentCategory = feature.category;
+
+    return response;
+  }
+  )}
+ </tbody>
+</table>`;
+};
+
 export default function render(request: Request, bcd): Response {
 
   const url = new URL(request.url);
@@ -83,16 +147,9 @@ export default function render(request: Request, bcd): Response {
     warnings.push("Choose at least two browsers to compare");
   }
 
-  if(selectedFeatures.size < 1 && submitted) {
+  if (selectedFeatures.size < 1 && submitted) {
     warnings.push("Choose at least one feature to show");
   }
-
-  // only show the features selected.
-  const filteredData = Object.fromEntries(Object.entries(bcd).filter(([key]) => selectedFeatures.has(key)));
-
-  const stableFeatures = getStableFeatures(browsers, selectedBrowsers, filteredData);
-
-  const tablulateSummary = generateFirstInLastInCrossTab(stableFeatures);
 
   // Formatter that we will use a couple of times.
   const formatter = new Intl.ListFormat('en', { style: 'long', type: 'conjunction' });
@@ -116,8 +173,6 @@ export default function render(request: Request, bcd): Response {
     table-layout:fixed;
     width: 100%;
   }
-
-  table.features {}
 
   form span.warning {
     color: red;
@@ -149,60 +204,7 @@ export default function render(request: Request, bcd): Response {
       <input type=submit>
     </form>
 
-    <h2>Stable APIs</h2>
-    <p>Below is a list of features that are in ${browserList}</p>
-    <h3>Summary</h3>
-    
-    <table class=tabular>
-      <caption>A count of the number of APIs that landed in A first and B last.</caption>
-      <thead>
-        <tr>
-          <th></th>
-          ${[...selectedBrowsers].map(key => template`<th>Last in ${helper.getBrowserName(key)}</th>`)} 
-        </tr>
-      </thead>
-      <tbody>
-        ${[...selectedBrowsers].map((firstInKey) => template`<tr>
-          <th scope="row">First in ${helper.getBrowserName(firstInKey)}</th>
-          ${[...selectedBrowsers].map((lastInKey) => template`<td>${tablulateSummary[firstInKey][lastInKey]}</td>`)}
-          </tr>`)} 
-      </tbody>
-    </table>
-
-    <h3>Raw Data</h3>
-    Quick Links: <ul>${[...selectedFeatures].map(feature => template`<li><a href="#${feature}-table">${feature}</a></li>`)}</ul>
-    ${stableFeatures.map(feature => {
-    let response;
-    let heading;
-    if (currentCategory != feature.category) {
-      heading = template`
-          ${(currentCategory == "") ? "" : "</tbody></table>"}
-          <h4>${feature.category} Data</h4>
-          <table id="${feature.category}-table">
-          <thead>
-            <tr>
-              <th>API</th>
-              <th>First Browser</th>
-              <th>Date</th>
-              <th>Last Browser</th>
-              <th>Date</th>
-              <th>Days</th>
-            </tr>
-          </thead>
-          <tbody>`
-    }
-
-    response = template`${(heading != undefined) ? heading : ""}<tr>
-      <td><a href="${feature.mdn_url}">${feature.api}</a></td><td>${helper.getBrowserName(feature.firstBrowser)}</td><td>${feature.firstDate.toLocaleDateString()}</td>
-      <td>${helper.getBrowserName(feature.lastBrowser)}</td><td>${feature.lastDate.toLocaleDateString()}</td><td>${feature.ageInDays}</td></tr>`
-
-    currentCategory = feature.category;
-
-    return response;
-  }
-  )}
-   </tbody>
-  </table>
+    ${(submitted && warnings.length == 0) ? renderResults(bcd, browsers, selectedBrowsers, selectedFeatures) : ``}
      
     <footer><p>Using BCD version: ${__meta.version}, updated on ${__meta.timestamp}</p></footer>
 	</body>
