@@ -1,24 +1,7 @@
 import template from "../flora.ts";
 import { getStableFeatures } from "../bcd.ts";
+import Browsers from "../bcd.ts";
 
-class Browsers {
-  #browsers;
-  constructor(browsers) {
-    this.#browsers = browsers;
-  }
-
-  getBrowserReleaseDate = (browser, version): Set => {
-    return this.#browsers[browser].releases[version].release_date;
-  }
-
-  getBrowserName = (browser): String => {
-    return this.#browsers[browser].name;
-  }
-
-  getBrowserNames = (selectedBrowsers: Set): String => {
-    return [...selectedBrowsers.keys()].map(browser => this.#browsers[browser].name);
-  }
-}
 
 const renderBrowsers = (browsers, selectedBrowsers: Set) => {
   return template`${Object.entries(browsers).map(([browser, details]) => template`<input type=checkbox name="browser-${browser}" id="browser-${browser}" ${selectedBrowsers.has(browser) ? template`checked=checked` : template``}>

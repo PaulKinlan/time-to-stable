@@ -1,25 +1,6 @@
 import template from "../flora.ts";
 import { getStableFeatures } from "../bcd.ts";
-
-class Browsers {
-  #browsers;
-  constructor(browsers) {
-    this.#browsers = browsers;
-  }
-
-  getBrowserReleaseDate = (browser, version): Set => {
-    // need to do something with "mirror"
-    return this.#browsers[browser].releases[version].release_date;
-  }
-
-  getBrowserName = (browser) => {
-    return this.#browsers[browser].name;
-  }
-
-  getBrowserNames = (selectedBrowsers: Set) => {
-    return [...selectedBrowsers.keys()].map(browser => this.#browsers[browser].name);
-  }
-}
+import Browsers from "../bcd.ts";
 
 const renderBrowsers = (browsers, selectedBrowsers: Set) => {
   return template`${Object.entries(browsers).map(([browser, details]) => template`<input type=checkbox name="browser-${browser}" id="browser-${browser}" ${selectedBrowsers.has(browser) ? template`checked=checked` : template``}>
@@ -40,7 +21,6 @@ const parseSelectedFeatures = (request: Request) => {
   const url = new URL(request.url);
   return new Set([...url.searchParams.keys()].filter(key => key.startsWith('feature-')).map(key => key.replace('feature-', '')));
 };
-
 
 const generateFirstInLastInCrossTab = (stableFeatures) => {
 
@@ -64,7 +44,7 @@ const renderWarnings = (warnings: Array<string>): template => {
   return template`<span class="warning"><ul>${warnings.map(warning => template`<li>${warning}</li>`)}</ul></span>`;
 };
 
-const renderResults = (bcd, browsers, browserList, selectedBrowsers: Set<String>, selectedFeatures: Set<String>): template => {
+const renderResults = (bcd, browsers, helper, browserList, selectedBrowsers: Set<String>, selectedFeatures: Set<String>): template => {
   // only show the features selected.
   const filteredData = Object.fromEntries(Object.entries(bcd).filter(([key]) => selectedFeatures.has(key)));
 
@@ -204,7 +184,7 @@ export default function render(request: Request, bcd): Response {
       <input type=submit>
     </form>
 
-    ${(submitted && warnings.length == 0) ? renderResults(bcd, browsers, browserList, selectedBrowsers, selectedFeatures) : ``}
+    ${(submitted && warnings.length == 0) ? renderResults(bcd, browsers, helper, browserList, selectedBrowsers, selectedFeatures) : ``}
      
     <footer><p>Using BCD version: ${__meta.version}, updated on ${__meta.timestamp}</p></footer>
 	</body>
