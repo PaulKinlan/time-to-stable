@@ -1,6 +1,6 @@
 import template from "../flora.ts";
 import { getStableFeatures } from "../bcd.ts";
-import Browsers from "../bcd.ts";
+import Browsers from "../browser.ts";
 
 
 const renderBrowsers = (browsers, selectedBrowsers: Set) => {
