@@ -79,11 +79,11 @@ export default function render(request: Request, bcd): Response {
 
   let submitted = url.href.indexOf("?") > -1; // Likely submitted from form with nothing selected.
 
-  if (selectedBrowsers.size == 0 && submitted) {
+  if (selectedBrowsers.size < 2 && submitted) {
     warnings.push("Choose at least two browsers to compare");
   }
 
-  if(selectedFeatures.size == 0 && submitted) {
+  if(selectedFeatures.size < 1 && submitted) {
     warnings.push("Choose at least one feature to show");
   }
 
