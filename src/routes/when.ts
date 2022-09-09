@@ -131,7 +131,7 @@ export default function render(request: Request, bcd): Response {
     <h2>Stable APIs</h2>
     <p>Below is a list of features that are in ${browserList}, ordered reverse chronologically by when they became stable (i.e, available in the last browser).</p>
     
-   ${(warnings.length > 0) ? stableFeatures.map(feature => {
+   ${(warnings.length == 0) ? stableFeatures.map(feature => {
     let response;
     let heading;
     const date = feature.lastDate.getFullYear() + "/" + (feature.lastDate.getUTCMonth() + 1);
