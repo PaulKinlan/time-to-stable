@@ -60,15 +60,29 @@ const generateFirstInLastInCrossTab = (stableFeatures) => {
   return output;
 };
 
+const renderWarnings = (warnings: Array<string>): template => {
+  return template`<ul>${warnings.map(warning => template`<li>${warning}</li>`)}</ul>`;
+};
+
 export default function render(request: Request, bcd): Response {
 
   const { __meta, browsers, api, css, html, javascript } = bcd;
   const featureConfig = { 'api': { name: "DOM API" }, 'css': { name: "CSS" }, 'html': { name: "HTML" }, 'javascript': { name: "JavaScript" } };
 
+  let warnings = new Array<string>();
+
   const helper = new Browsers(browsers);
 
   const selectedBrowsers = parseSelectedBrowsers(request);
   const selectedFeatures = parseSelectedFeatures(request);
+
+  if (selectedBrowsers.length == 0) {
+    warnings.push("Choose at least two browsers to compare");
+  }
+
+  if(selectedFeatures.length == 0) {
+    warnings.push("Choose at least one feature to show");
+  }
 
   // only show the features selected.
   const filteredData = Object.fromEntries(Object.entries(bcd).filter(([key]) => selectedFeatures.has(key)));
@@ -115,6 +129,7 @@ export default function render(request: Request, bcd): Response {
       </ol>
     </nav>
     <form method=GET action="/" >
+      <span>${renderWarnings(warnings)}</span>
       <fieldset>
         <legend>Browsers</legend>
         ${renderBrowsers(browsers, selectedBrowsers)}
