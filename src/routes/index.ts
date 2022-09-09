@@ -45,6 +45,9 @@ const renderWarnings = (warnings: Array<string>): template => {
 };
 
 const renderResults = (bcd, browsers, helper, browserList, selectedBrowsers: Set<String>, selectedFeatures: Set<String>): template => {
+
+  let currentCategory = "";
+
   // only show the features selected.
   const filteredData = Object.fromEntries(Object.entries(bcd).filter(([key]) => selectedFeatures.has(key)));
 
@@ -134,8 +137,6 @@ export default function render(request: Request, bcd): Response {
   // Formatter that we will use a couple of times.
   const formatter = new Intl.ListFormat('en', { style: 'long', type: 'conjunction' });
   let browserList = formatter.format(helper.getBrowserNames(selectedBrowsers));
-
-  let currentCategory = "";
 
   return template`<html>
 
