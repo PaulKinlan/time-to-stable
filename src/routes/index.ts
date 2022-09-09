@@ -44,7 +44,7 @@ const renderWarnings = (warnings: Array<string>): template => {
   return template`<span class="warning"><ul>${warnings.map(warning => template`<li>${warning}</li>`)}</ul></span>`;
 };
 
-const renderResults = (bcd, browsers, helper, browserList, selectedBrowsers: Set<String>, selectedFeatures: Set<String>): template => {
+const renderResults = (bcd, browsers, helper, browserList, selectedBrowsers: Set<String>, selectedFeatures: Set<String>, featureConfig): template => {
 
   let currentCategory = "";
 
@@ -76,14 +76,14 @@ const renderResults = (bcd, browsers, helper, browserList, selectedBrowsers: Set
   </table>
 
   <h3>Raw Data</h3>
-  Quick Links: <ul>${[...selectedFeatures].map(feature => template`<li><a href="#${feature}-table">${feature}</a></li>`)}</ul>
+  Quick Links: <ul>${[...selectedFeatures].map(feature => template`<li><a href="#${feature}-table">${featureConfig[feature].name}</a></li>`)}</ul>
   ${stableFeatures.map(feature => {
     let response;
     let heading;
     if (currentCategory != feature.category) {
       heading = template`
         ${(currentCategory == "") ? "" : "</tbody></table>"}
-        <h4>${feature.category} Data</h4>
+        <h4>${featureConfig[feature.category].name} Data</h4>
         <table id="${feature.category}-table">
         <thead>
           <tr>
@@ -185,7 +185,7 @@ export default function render(request: Request, bcd): Response {
       <input type=submit>
     </form>
 
-    ${(submitted && warnings.length == 0) ? renderResults(bcd, browsers, helper, browserList, selectedBrowsers, selectedFeatures) : ``}
+    ${(submitted && warnings.length == 0) ? renderResults(bcd, browsers, helper, browserList, selectedBrowsers, selectedFeatures, featureConfig) : ``}
      
     <footer><p>Using BCD version: ${__meta.version}, updated on ${__meta.timestamp}</p></footer>
 	</body>
