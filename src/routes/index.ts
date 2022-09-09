@@ -84,6 +84,8 @@ export default function render(request: Request, bcd): Response {
     warnings.push("Choose at least one feature to show");
   }
 
+  console.log(warnings, selectedBrowsers, selectedFeatures)
+
   // only show the features selected.
   const filteredData = Object.fromEntries(Object.entries(bcd).filter(([key]) => selectedFeatures.has(key)));
 
