@@ -24,14 +24,14 @@ class StaticFileHandler {
     this.#basePath = base;
   }
 
-  handler(request: Request): Response {
+  handler(request: Request): Promise<Response> | Response {
     const pathname = new URL(request.url).pathname;
     const extension = pathname.substr(pathname.lastIndexOf("."));
     const resolvedPathname = (pathname == "" || pathname == "/")
       ? "/index.html"
       : pathname;
     const path = join(Deno.cwd(), this.#basePath, resolvedPathname);
-    const file: Response = Deno.readFile(path)
+    const file: Promise<Response> = Deno.readFile(path)
       .then((data) : Response=>
         new Response(data, {
           status: 200,
