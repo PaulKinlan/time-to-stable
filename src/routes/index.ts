@@ -1,26 +1,11 @@
-import template from "../flora.ts";
+import { BrowserName, Browsers, CompatData } from "https://esm.sh/@mdn/browser-compat-data@latest/types.d.ts";
 import { getStableFeatures } from "../bcd.ts";
-import Browsers from "../browser.ts";
-
-const renderBrowsers = (browsers, selectedBrowsers: Set) => {
-  return template`${Object.entries(browsers).map(([browser, details]) => template`<input type=checkbox name="browser-${browser}" id="browser-${browser}" ${selectedBrowsers.has(browser) ? template`checked=checked` : template``}>
-  <label for="browser-${browser}">${details.name}</label>`)}`
-};
-
-const renderFeatures = (features, selectedFeatures: Set) => {
-  return template`${Object.entries(features).map(([feature, details]) => template`<input type=checkbox name="feature-${feature}" id="feature-${feature}" ${selectedFeatures.has(feature) ? template`checked=checked` : template``}>
-  <label for="feature-${feature}">${details.name}</label>`)}`
-};
-
-const parseSelectedBrowsers = (request: Request) => {
-  const url = new URL(request.url);
-  return new Set([...url.searchParams.keys()].filter(key => key.startsWith('browser-')).map(key => key.replace('browser-', '')));
-};
-
-const parseSelectedFeatures = (request: Request) => {
-  const url = new URL(request.url);
-  return new Set([...url.searchParams.keys()].filter(key => key.startsWith('feature-')).map(key => key.replace('feature-', '')));
-};
+import BrowsersHelper from "../browser.ts";
+import template from "../flora.ts";
+import { parseSelectedBrowsers, parseSelectedFeatures } from "./request-utils.ts";
+import { FeatureConfig, ValidFeatures } from "./types.d.ts";
+import { renderBrowsers } from "./ui-components/browsers.ts";
+import { renderFeatures } from "./ui-components/features.ts";
 
 const generateFirstInLastInCrossTab = (stableFeatures) => {
 
@@ -40,11 +25,11 @@ const generateFirstInLastInCrossTab = (stableFeatures) => {
   return output;
 };
 
-const renderWarnings = (warnings: Array<string>): template => {
+const renderWarnings = (warnings: Array<string>): ReadableStream<any> => {
   return template`<span class="warning"><ul>${warnings.map(warning => template`<li>${warning}</li>`)}</ul></span>`;
 };
 
-const renderResults = (bcd, browsers, helper, browserList, selectedBrowsers: Set<string>, selectedFeatures: Set<string>, featureConfig): template => {
+function renderResults(bcd: CompatData, browsers: Browsers, helper: BrowsersHelper, browserList, selectedBrowsers: Set<BrowserName>, selectedFeatures: Set<ValidFeatures>, featureConfig: FeatureConfig): ReadableStream<any> {
 
   let currentCategory = "";
 
@@ -55,7 +40,7 @@ const renderResults = (bcd, browsers, helper, browserList, selectedBrowsers: Set
 
   const tablulateSummary = generateFirstInLastInCrossTab(stableFeatures);
 
-  return template`<h2>Stable APIs</h2>
+  const output = template`<h2>Stable APIs</h2>
   <p>Below is a list of features that are in ${browserList}</p>
   <h3>Summary</h3>
   
@@ -76,7 +61,7 @@ const renderResults = (bcd, browsers, helper, browserList, selectedBrowsers: Set
   </table>
 
   <h3>Raw Data</h3>
-  Quick Links: <ul>${[...selectedFeatures].map(feature => template`<li><a href="#${feature}-table">${featureConfig[feature].name}</a></li>`)}</ul>
+  Quick Links: <ul>${[...selectedFeatures].map(selectedFeature => template`<li><a href="#${selectedFeature}-table">${featureConfig[selectedFeature].name}</a></li>`)}</ul>
   ${stableFeatures.map(feature => {
     let response;
     let heading;
@@ -95,12 +80,12 @@ const renderResults = (bcd, browsers, helper, browserList, selectedBrowsers: Set
             <th>Days</th>
           </tr>
         </thead>
-        <tbody>`
+        <tbody>`;
     }
 
     response = template`${(heading != undefined) ? heading : ""}<tr>
     <td><a href="${feature.mdn_url}">${feature.api}</a> ${("spec_url" in feature) ? template`<a href="${feature.spec_url}" title="${feature.api} specification">📋</a>` : template``}</td><td>${helper.getBrowserName(feature.firstBrowser)}</td><td>${feature.firstDate.toLocaleDateString()}</td>
-    <td>${helper.getBrowserName(feature.lastBrowser)}</td><td>${feature.lastDate.toLocaleDateString()}</td><td>${feature.ageInDays}</td></tr>`
+    <td>${helper.getBrowserName(feature.lastBrowser)}</td><td>${feature.lastDate.toLocaleDateString()}</td><td>${feature.ageInDays}</td></tr>`;
 
     currentCategory = feature.category;
 
@@ -109,16 +94,19 @@ const renderResults = (bcd, browsers, helper, browserList, selectedBrowsers: Set
   )}
  </tbody>
 </table>`;
-};
 
-export default function render(request: Request, bcd): Response {
+  return output;
+}
+
+
+export default function render(request: Request, bcd: CompatData): Response {
 
   const url = new URL(request.url);
   const { __meta, browsers } = bcd;
-  const featureConfig = { 'api': { name: "DOM API" }, 'css': { name: "CSS" }, 'html': { name: "HTML" }, 'javascript': { name: "JavaScript" } };
+  const featureConfig: FeatureConfig = { 'api': { name: "DOM API" }, 'css': { name: "CSS" }, 'html': { name: "HTML" }, 'javascript': { name: "JavaScript" } };
 
   const warnings = new Array<string>();
-  const helper = new Browsers(browsers);
+  const helper = new BrowsersHelper(browsers);
 
   const selectedBrowsers = parseSelectedBrowsers(request);
   const selectedFeatures = parseSelectedFeatures(request);
@@ -174,14 +162,8 @@ export default function render(request: Request, bcd): Response {
     <p>For a given set of browsers, what APIs are in all of them and how long did it take for the API to land in the first browser to the last.</p>
     <form method=GET action="/" >
       ${renderWarnings(warnings)}
-      <fieldset>
-        <legend>Browsers</legend>
-        ${renderBrowsers(browsers, selectedBrowsers)}
-      </fieldset>
-      <fieldset>
-        <legend>Features</legend>
-        ${renderFeatures(featureConfig, selectedFeatures)}
-      </fieldset>
+      ${renderBrowsers(browsers, selectedBrowsers)}
+      ${renderFeatures(featureConfig, selectedFeatures)}
       <input type=reset>
       <input type=submit>
     </form>
