@@ -4,8 +4,9 @@ import BrowsersHelper from "../browser.ts";
 import template from "../flora.ts";
 import { parseSelectedBrowsers, parseSelectedFeatures } from "./request-utils.ts";
 import { FeatureConfig, ValidFeatures } from "./types.d.ts";
-import { renderBrowsers } from "./ui-components/browsers.ts";
-import { renderFeatures } from "./ui-components/features.ts";
+import renderBrowsers from "./ui-components/browsers.ts";
+import renderFeatures from "./ui-components/features.ts";
+import renderWarnings from "./ui-components/warnings.ts";
 
 const generateFirstInLastInCrossTab = (stableFeatures) => {
 
@@ -23,10 +24,6 @@ const generateFirstInLastInCrossTab = (stableFeatures) => {
     output[feature.firstBrowser][feature.lastBrowser]++;
   }
   return output;
-};
-
-const renderWarnings = (warnings: Array<string>): ReadableStream<any> => {
-  return template`<span class="warning"><ul>${warnings.map(warning => template`<li>${warning}</li>`)}</ul></span>`;
 };
 
 function renderResults(bcd: CompatData, browsers: Browsers, helper: BrowsersHelper, browserList, selectedBrowsers: Set<BrowserName>, selectedFeatures: Set<ValidFeatures>, featureConfig: FeatureConfig): ReadableStream<any> {

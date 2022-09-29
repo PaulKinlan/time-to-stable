@@ -1,4 +1,4 @@
-import { CompatStatement, Browsers, BrowserName, Identifier, SupportStatement } from "https://esm.sh/@mdn/browser-compat-data@latest/types.d.ts";
+import { CompatStatement, Browsers, BrowserName, Identifier, SupportStatement } from "./types.d.ts";
 
 type Feature = [string, Identifier | CompatStatement, string | undefined]
 type BrowserDate = { browser: BrowserName, added: Date };
@@ -27,7 +27,7 @@ function* itterateFeatures(data: Identifier | CompatStatement, parent?: string, 
   }
 }
 
-export const getStableFeatures = (browsers: Browsers, mustBeIn: Set<BrowserName>, data: Identifier | CompatStatement) => {
+export const getStableFeatures = (browsers: Browsers, mustBeIn: Set<BrowserName>, data: Identifier | CompatStatement) :[] => {
   const output = [];
   for (const [api, compat, root] of itterateFeatures(data)) {
     if ("__compat" in compat) {

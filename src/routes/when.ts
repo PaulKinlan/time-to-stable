@@ -1,26 +1,28 @@
-import template from "../flora.ts";
+
 import { getStableFeatures } from "../bcd.ts";
-import Browsers from "../browser.ts";
-import { parseSelectedFeatures, parseSelectedBrowsers } from "./request-utils.ts";
-import { FeatureConfig, ValidFeatures } from "./types.d.ts";
-import { renderBrowsers } from "./ui-components/browsers.ts";
-import { renderFeatures } from "./ui-components/features.ts";
+import { default as Browsers, default as BrowsersHelper } from "../browser.ts";
+import { CompatData } from "../types.d.ts";
+import { parseResponse, parseSelectedBrowsers, parseSelectedFeatures } from "./request-utils.ts";
+import { FeatureConfig, WhenRender } from "./types.d.ts";
 
-const renderWarnings = (warnings: Array<string>): template => {
-  return template`<span class="warning"><ul>${warnings.map((warning) => template`<li>${warning}</li>`)
-    }</ul></span>`;
-};
+const controllers = {
+  'html': import('./when/html.ts'),
+  'rss': import('./when/rss.ts')
+}
 
-export default function render(request: Request, bcd): Response {
+const featureConfig: FeatureConfig = { 'api': { name: "DOM API" }, 'css': { name: "CSS" }, 'html': { name: "HTML" }, 'javascript': { name: "JavaScript" } };
+
+export default function render(request: Request, bcd: CompatData): Response {
   const url = new URL(request.url);
   const { __meta, browsers } = bcd;
-  const featureConfig: FeatureConfig = { 'api': { name: "DOM API" }, 'css': { name: "CSS" }, 'html': { name: "HTML" }, 'javascript': { name: "JavaScript" } };
 
   const warnings = new Array<string>();
   const helper = new Browsers(browsers);
 
   const selectedBrowsers = parseSelectedBrowsers(request);
   const selectedFeatures = parseSelectedFeatures(request);
+
+  const responseType = parseResponse(request);
 
   const submitted = url.href.indexOf("?") > -1; // Likely submitted from form with nothing selected.
 
@@ -31,6 +33,7 @@ export default function render(request: Request, bcd): Response {
   if (selectedFeatures.size < 1 && submitted) {
     warnings.push("Choose at least one feature to show");
   }
+
   // only show the features selected.
   const filteredData = Object.fromEntries(
     Object.entries(bcd).filter(([key]) => selectedFeatures.has(key)),
@@ -53,105 +56,22 @@ export default function render(request: Request, bcd): Response {
   });
   const browserList = formatter.format(helper.getBrowserNames(selectedBrowsers));
 
-  let currentMonth = "";
+  const data: WhenRender = {
+    bcd,
+    stableFeatures,
+    browserList,
+    browsers,
+    helper,
+    featureConfig,
+    selectedFeatures,
+    selectedBrowsers,
+    warnings
+  };
 
-  return template`<html>
-
-  <head>
-	<title>Now Stable ${(browserList != "") ? `across ${browserList}` : ""
-    }</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
-	<meta name="author" content="Paul Kinlan">
-  <meta name="description" content="A list of features that are considered stable for ${browserList}">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <meta charset="UTF-8">
-	<link rel="author" href="https://paul.kinlan.me/">
-  <link rel="shortcut icon" href="/images/favicon.png">
-  <style>
-
-  table {
-    table-layout:fixed;
-    width: 100%;
-  }
-
-  form span.warning {
-    color: red;
-  }
-
-  </style>
-  </head>
-  <body>
-    <header>
-      <h1>Now Stable</h1>
-    </header>
-    <nav>
-      <ol>
-          <li><a href="/">Time to Stable</a></li>
-          <li><a href="/when-stable">Now Stable</a></li>
-      </ol>
-    </nav>
-    <p>"New on the Web": For a given set of browsers, what APIs became stable and when, ordered reverse chronologically.</p>
-    <p>It's a great source of information for posts like <a href="https://web.dev/tags/new-to-the-web/">this</a></p>
-    <form method=GET action="/when-stable">
-      ${renderWarnings(warnings)}
-      ${renderBrowsers(browsers, selectedBrowsers)}
-      ${renderFeatures(featureConfig, selectedFeatures)}
-      <input type=reset>
-      <input type=submit>
-    </form>
-
-    <h2>Stable APIs</h2>
-    <p>Below is a list of features that are in ${browserList}, ordered reverse chronologically by when they became stable (i.e, available in the last browser).</p>
-    
-   ${(warnings.length == 0)
-      ? stableFeatures.map((feature) => {
-        let response;
-        let heading;
-        const date = feature.lastDate.getFullYear() + "/" +
-          (feature.lastDate.getUTCMonth() + 1);
-        if (currentMonth != date) {
-          heading = template`
-          ${(date == "") ? "" : "</tbody></table>"}
-          <h4>${date}</h4>
-          <table>
-          <thead>
-            <tr>
-              <th>API</th>
-              <th>First Browser</th>
-              <th>Date</th>
-              <th>Last Browser</th>
-              <th>Date</th>
-              <th>Days</th>
-            </tr>
-          </thead>
-          <tbody>`;
-        }
-
-        response = template`${(heading != undefined) ? heading : ""}<tr>
-        <td><a href="${feature.mdn_url}">${feature.api}</a> ${("spec_url" in feature)
-            ? template`<a href="${feature.spec_url}" title="${feature.api} specification">📋</a>`
-            : template``
-          }</td><td>${helper.getBrowserName(feature.firstBrowser)
-          }</td><td>${feature.firstDate.toLocaleDateString()}</td>
-        <td>${helper.getBrowserName(feature.lastBrowser)
-          }</td><td>${feature.lastDate.toLocaleDateString()}</td><td>${feature.ageInDays}</td></tr>`;
-
-        currentMonth = date;
-
-        return response;
-      })
-      : ""
-    } 
-   </tbody>
-  </table>
-     
-    <footer><p>Created by <a href="https://paul.kinlan.me">Paul Kinlan</a>. Using <a href="https://github.com/mdn/browser-compat-data">BCD</a> version: ${__meta.version}, updated on ${__meta.timestamp}</p></footer>
-	</body>
-  </html>`
-    .then((data) =>
-      new Response(data, {
-        status: 200,
-        headers: { "content-type": "text/html" },
-      })
-    );
+  return controllers[responseType].then(module => module.default(data)).then((data): Response =>
+    new Response(data, {
+      status: 200,
+      headers: { "content-type": "text/html" },
+    })
+  );
 }

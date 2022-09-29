@@ -1,4 +1,4 @@
-import { Browsers, BrowserName } from "https://esm.sh/@mdn/browser-compat-data@latest/types.d.ts";
+import { Browsers, BrowserName } from "./types.d.ts";
 
 export default class BrowsersHelper {
   #browsers: Browsers;

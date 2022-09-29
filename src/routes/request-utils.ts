@@ -1,5 +1,5 @@
 import { BrowserName } from "https://esm.sh/@mdn/browser-compat-data@latest/types.d.ts";
-import { ValidFeatures } from "./types.d.ts";
+import { ResponseType, ValidFeatures } from "./types.d.ts";
 
 export function parseSelectedFeatures(request: Request): Set<ValidFeatures> {
   const url = new URL(request.url);
@@ -11,4 +11,10 @@ export function parseSelectedBrowsers(request: Request): Set<BrowserName> {
   const url = new URL(request.url);
   const browserNames = [...url.searchParams.keys()].filter(key => key.startsWith('browser-')).map(key => <BrowserName>key.replace('browser-', ''));
   return new Set<BrowserName>(browserNames);
+}
+
+export function parseResponse(request: Request): ResponseType {
+  const url = new URL(request.url);
+  const responseType: ResponseType = (url.searchParams.get("type") == "rss") ? "rss" : "html";
+  return responseType;
 }
