@@ -27,8 +27,6 @@ export default function render(request: Request, bcd: CompatData): Response {
 
   const responseType = parseResponse(request);
 
-  console.log(responseType)
-
   const submitted = url.href.indexOf("?") > -1; // Likely submitted from form with nothing selected.
 
   if (selectedBrowsers.size < 2 && submitted) {

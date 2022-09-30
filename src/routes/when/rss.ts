@@ -2,10 +2,6 @@ import { WhenRender } from "../types.d.ts";
 import { Feed } from 'https://jspm.dev/feed';
 
 export default function render({ bcd, stableFeatures, browsers, browserList, selectedBrowsers, selectedFeatures, helper, featureConfig, warnings }: WhenRender): Response {
-  let currentMonth = "";
-
-  console.log("RSS")
-
   const { __meta } = bcd
 
   const feed = new Feed({
