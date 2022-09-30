@@ -66,7 +66,7 @@ export default function render({ bcd, stableFeatures, browsers, browserList, sel
   }
 
   return new Response(feed.rss2(), {
-  status: 200,
-  headers: { "content-type": "application/rss+xml" }
-});
+    status: 200,
+    headers: { "content-type": "application/rss+xml" }
+  });
 };
