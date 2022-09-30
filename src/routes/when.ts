@@ -6,7 +6,6 @@ import { parseResponse, parseSelectedBrowsers, parseSelectedFeatures } from "./r
 import { FeatureConfig, WhenRender } from "./types.d.ts";
 
 import htmlRender from './when/html.ts';
-
 import rssRender from './when/rss.ts';
 
 const controllers = {
@@ -27,6 +26,8 @@ export default function render(request: Request, bcd: CompatData): Response {
   const selectedFeatures = parseSelectedFeatures(request);
 
   const responseType = parseResponse(request);
+
+  console.log(responseType)
 
   const submitted = url.href.indexOf("?") > -1; // Likely submitted from form with nothing selected.
 
