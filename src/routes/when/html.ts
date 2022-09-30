@@ -4,12 +4,12 @@ import renderBrowsers from "../ui-components/browsers.ts";
 import renderFeatures from "../ui-components/features.ts";
 import renderWarnings from "../ui-components/warnings.ts";
 
-export default function render({ bcd, stableFeatures, browsers, browserList, selectedBrowsers, selectedFeatures, helper, featureConfig, warnings }: WhenRender): ReadableStream<any> {
+export default function render({ bcd, stableFeatures, browsers, browserList, selectedBrowsers, selectedFeatures, helper, featureConfig, warnings }: WhenRender): Response {
   let currentMonth = "";
 
   const { __meta } = bcd
 
-  return template`<html>
+  return new Response(template`<html>
 
   <head>
 	<title>Now Stable ${(browserList != "") ? `across ${browserList}` : ""
@@ -101,5 +101,8 @@ export default function render({ bcd, stableFeatures, browsers, browserList, sel
      
     <footer><p>Created by <a href="https://paul.kinlan.me">Paul Kinlan</a>. Using <a href="https://github.com/mdn/browser-compat-data">BCD</a> version: ${__meta.version}, updated on ${__meta.timestamp}</p></footer>
 	</body>
-  </html>`
+  </html>`, {
+    status: 200,
+    headers: { "content-type": "text/html" }
+  });
 }

@@ -68,10 +68,5 @@ export default function render(request: Request, bcd: CompatData): Response {
     warnings
   };
 
-  return controllers[responseType].then(module => module.default(data)).then((data): Response =>
-    new Response(data, {
-      status: 200,
-      headers: { "content-type": "text/html" },
-    })
-  );
+  return controllers[responseType].then(module => module.render(data));
 }
