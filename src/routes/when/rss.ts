@@ -8,12 +8,11 @@ export default function render({ bcd, stableFeatures, browsers, browserList, sel
 
   const { __meta } = bcd
 
-
   const feed = new Feed({
     title: `Now Stable${(browserList != "") ? ` across ${browserList}` : ""}`,
     description: `Features that are considered stable for ${browserList}`,
     link: '',
-    updated: __meta.timestamp
+    updated: new Date(__meta.timestamp)
   });
 
 
