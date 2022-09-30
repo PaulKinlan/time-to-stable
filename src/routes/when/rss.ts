@@ -12,7 +12,8 @@ export default function render({ bcd, stableFeatures, browsers, browserList, sel
     title: `Now Stable${(browserList != "") ? ` across ${browserList}` : ""}`,
     description: `Features that are considered stable for ${browserList}`,
     link: '',
-    updated: new Date(__meta.timestamp)
+    updated: new Date(__meta.timestamp),
+    generator: "Time to Stable",
   });
 
 
@@ -67,6 +68,6 @@ export default function render({ bcd, stableFeatures, browsers, browserList, sel
 
   return new Response(feed.rss2(), {
     status: 200,
-    headers: { "content-type": "application/rss+xml" }
+    headers: { "content-type": "application/rss+xml; charset=utf-8" }
   });
 };
