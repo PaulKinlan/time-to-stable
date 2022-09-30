@@ -5,9 +5,13 @@ import { CompatData } from "../types.d.ts";
 import { parseResponse, parseSelectedBrowsers, parseSelectedFeatures } from "./request-utils.ts";
 import { FeatureConfig, WhenRender } from "./types.d.ts";
 
+import htmlRender from './when/html.ts';
+
+import rssRender from './when/rss.ts';
+
 const controllers = {
-  'html': import('./when/html.ts'),
-  'rss': import('./when/rss.ts')
+  'html': htmlRender,
+  'rss': rssRender
 }
 
 const featureConfig: FeatureConfig = { 'api': { name: "DOM API" }, 'css': { name: "CSS" }, 'html': { name: "HTML" }, 'javascript': { name: "JavaScript" } };
@@ -68,5 +72,5 @@ export default function render(request: Request, bcd: CompatData): Response {
     warnings
   };
 
-  return controllers[responseType].then(module => module.render(data));
+  return controllers[responseType](data);
 }
