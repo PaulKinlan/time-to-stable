@@ -51,7 +51,7 @@ export default function render({ bcd, stableFeatures, browsers, browserList, sel
       }</td><td>${helper.getBrowserName(feature.firstBrowser)
       }</td><td>${feature.firstDate.toLocaleDateString()}</td>
     <td>${helper.getBrowserName(feature.lastBrowser)
-      }</td><td>${feature.lastDate.toLocaleDateString()}</td><td>${feature.ageInDays}</td></tr>`)}
+      }</td><td>${feature.lastDate.toLocaleDateString()}</td><td>${feature.ageInDays}</td></tr>`, "")}
     </tbody></table>`;
 
     // Format the features
