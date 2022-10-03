@@ -51,8 +51,6 @@ serve((req: Request) => {
   const url = req.url;
   const staticFiles = new StaticFileHandler("static");
   let response: Response | Promise<Response> = new Response("Not found", { status: 404 });
-
-  console.log(Deno.env.get("DENO_DEPLOYMENT_ID"))
     
   const routes: Array<Route> = [
     [

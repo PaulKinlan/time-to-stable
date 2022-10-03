@@ -1,15 +1,29 @@
 import template from "../../flora.ts";
-import { WhenRender } from "../types.d.ts";
+import { Browsers, BrowserName } from "../../types.d.ts";
+import { FeatureConfig, WhenRender } from "../types.d.ts";
 import renderBrowsers from "../ui-components/browsers.ts";
 import renderFeatures from "../ui-components/features.ts";
 import renderWarnings from "../ui-components/warnings.ts";
 
 
+function renderBrowsersQuery(browsers: Browsers, selectedBrowsers: Set<BrowserName>): string {
+  return Object.entries(browsers)
+    .filter(([browser, details]) => selectedBrowsers.has(<BrowserName>browser))
+    .map(([browser, details])=> `browser-${browser}=on`)
+    .join('&');
+}
+
+function renderFeaturesQuery(features: FeatureConfig, selectedFeatures: Set<string>): string {
+  return Object.entries(features)
+    .filter(([feature, details]) => selectedFeatures.has(feature))
+    .map(([feature, details])=> `feature-${feature}=on`)
+    .join('&');
+}
+
 export default function render({ bcd, stableFeatures, browsers, browserList, selectedBrowsers, selectedFeatures, helper, featureConfig, warnings }: WhenRender): Response {
   let currentMonth = "";
 
   const { __meta } = bcd
-
 
   return template`<html>
   <head>
@@ -22,7 +36,7 @@ export default function render({ bcd, stableFeatures, browsers, browserList, sel
   <meta charset="UTF-8">
 	<link rel="author" href="https://paul.kinlan.me/">
   <link rel="shortcut icon" href="/images/favicon.png">
-  <link rel="alternate" href="https://${Deno.env.get("DENO_DEPLOYMENT_ID")}?type=rss">
+  <link rel="alternate" href="/when-stable?${renderBrowsersQuery(browsers, selectedBrowsers)}&${renderFeaturesQuery(featureConfig, selectedFeatures)}&type=rss">
   <style>
 
   table {
