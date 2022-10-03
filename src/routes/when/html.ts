@@ -11,7 +11,7 @@ export default function render({ bcd, stableFeatures, browsers, browserList, sel
   const { __meta } = bcd
 
 
-  return new Response(template`<html>
+  return template`<html>
   <head>
 	<title>Now Stable ${(browserList != "") ? `across ${browserList}` : ""
     }</title>
@@ -103,8 +103,8 @@ export default function render({ bcd, stableFeatures, browsers, browserList, sel
      
     <footer><p>Created by <a href="https://paul.kinlan.me">Paul Kinlan</a>. Using <a href="https://github.com/mdn/browser-compat-data">BCD</a> version: ${__meta.version}, updated on ${__meta.timestamp}</p></footer>
 	</body>
-  </html>`, {
+  </html>`.then((data) => new Response(data, {
     status: 200,
     headers: { "content-type": "text/html" }
-  });
+  }));
 }
