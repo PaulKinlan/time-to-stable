@@ -4,13 +4,14 @@ import renderBrowsers from "../ui-components/browsers.ts";
 import renderFeatures from "../ui-components/features.ts";
 import renderWarnings from "../ui-components/warnings.ts";
 
+
 export default function render({ bcd, stableFeatures, browsers, browserList, selectedBrowsers, selectedFeatures, helper, featureConfig, warnings }: WhenRender): Response {
   let currentMonth = "";
 
   const { __meta } = bcd
 
-  return new Response(template`<html>
 
+  return new Response(template`<html>
   <head>
 	<title>Now Stable ${(browserList != "") ? `across ${browserList}` : ""
     }</title>
@@ -21,6 +22,7 @@ export default function render({ bcd, stableFeatures, browsers, browserList, sel
   <meta charset="UTF-8">
 	<link rel="author" href="https://paul.kinlan.me/">
   <link rel="shortcut icon" href="/images/favicon.png">
+  <link rel="alternate" href="?type=rss">
   <style>
 
   table {
