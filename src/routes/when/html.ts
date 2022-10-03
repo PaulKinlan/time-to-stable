@@ -22,7 +22,7 @@ export default function render({ bcd, stableFeatures, browsers, browserList, sel
   <meta charset="UTF-8">
 	<link rel="author" href="https://paul.kinlan.me/">
   <link rel="shortcut icon" href="/images/favicon.png">
-  <link rel="alternate" href="?type=rss">
+  <link rel="alternate" href="https://${Deno.env.get("DENO_DEPLOYMENT_ID")}?type=rss">
   <style>
 
   table {
