@@ -1,4 +1,4 @@
-import { BrowserName, Browsers, CompatData } from "../types.d.ts";
+import { BrowserName, Browsers, CompatData, CompatResult } from "../types.d.ts";
 import { getStableFeatures } from "../bcd.ts";
 import BrowsersHelper from "../browser.ts";
 import { parseResponse, parseSelectedBrowsers, parseSelectedFeatures } from "./_utils/request.ts";
