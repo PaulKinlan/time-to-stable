@@ -1,6 +1,5 @@
-import BrowsersHelper from "../../browser.ts";
 import template from "../../flora.ts";
-import { BrowserName, ValidFeatures } from "../../types.d.ts";
+import { Browsers, BrowserName } from "../../types.d.ts";
 import { FeatureConfig, WhenRender } from "../types.d.ts";
 import renderBrowsers from "../ui-components/browsers.ts";
 import renderFeatures from "../ui-components/features.ts";
@@ -24,7 +23,7 @@ const generateFirstInLastInCrossTab = (stableFeatures) => {
   return output;
 };
 
-function renderResults(helper: BrowsersHelper, browserList, stableFeatures, selectedBrowsers: Set<BrowserName>, selectedFeatures: Set<ValidFeatures>, featureConfig: FeatureConfig): ReadableStream<any> {
+function renderResults({ bcd, browsers, helper, browserList, stableFeatures, selectedBrowsers, selectedFeatures, featureConfig }: { bcd: CompatData; browsers: Browsers; helper: BrowsersHelper; browserList; stableFeatures; selectedBrowsers: Set<BrowserName>; selectedFeatures: Set<ValidFeatures>; featureConfig: FeatureConfig; }): ReadableStream<any> {
 
   let currentCategory = "";
 
@@ -137,7 +136,7 @@ export default function render({ bcd, stableFeatures, submitted, browsers, brows
       <input type=submit>
     </form>
     
-    ${(submitted && warnings.length == 0) ? renderResults(bcd, browsers, helper, browserList, stableFeatures, selectedBrowsers, selectedFeatures, featureConfig) : ``}
+    ${(submitted && warnings.length == 0) ? renderResults({ bcd, browsers, helper, browserList, stableFeatures, selectedBrowsers, selectedFeatures, featureConfig }) : ``}
      
     <footer><p>Created by <a href="https://paul.kinlan.me">Paul Kinlan</a>. Using <a href="https://github.com/mdn/browser-compat-data">BCD</a> version: ${__meta.version}, updated on ${__meta.timestamp}</p></footer>
     </body>
