@@ -2,7 +2,7 @@
 import { getStableFeatures } from "../bcd.ts";
 import { default as Browsers, default as BrowsersHelper } from "../browser.ts";
 import { CompatData } from "../types.d.ts";
-import { parseResponse, parseSelectedBrowsers, parseSelectedFeatures } from "./request-utils.ts";
+import { parseResponse, parseSelectedBrowsers, parseSelectedFeatures } from "./_utils/request.ts";
 import { FeatureConfig, WhenRender } from "./types.d.ts";
 
 import htmlRender from './when/html.ts';
@@ -68,6 +68,7 @@ export default function render(request: Request, bcd: CompatData): Response {
     featureConfig,
     selectedFeatures,
     selectedBrowsers,
+    submitted,
     warnings
   };
 

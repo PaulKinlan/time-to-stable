@@ -13,5 +13,6 @@ type WhenRender = {
   selectedFeatures: Set<ValidFeatures>,
   stableFeatures: [],
   featureConfig: FeatureConfig,
-  warnings: string[]
+  warnings: string[],
+  submitted: boolean
 }

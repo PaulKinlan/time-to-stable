@@ -1,5 +1,5 @@
-import { BrowserName } from "https://esm.sh/@mdn/browser-compat-data@latest/types.d.ts";
-import { ResponseType, ValidFeatures } from "./types.d.ts";
+import { ResponseType } from "../types.d.ts";
+import { BrowserName, ValidFeatures } from "../../types.d.ts";
 
 export function parseSelectedFeatures(request: Request): Set<ValidFeatures> {
   const url = new URL(request.url);

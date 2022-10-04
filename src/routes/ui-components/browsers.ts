@@ -1,4 +1,4 @@
-import { BrowserName, Browsers } from "https://esm.sh/@mdn/browser-compat-data@latest/types.d.ts";
+import { BrowserName, Browsers } from "../../types.d.ts";
 import template from "../../flora.ts";
 
 export default function renderBrowsers(browsers: Browsers, selectedBrowsers: Set<BrowserName>): ReadableStream<any> {

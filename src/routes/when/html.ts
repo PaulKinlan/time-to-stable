@@ -5,7 +5,6 @@ import renderBrowsers from "../ui-components/browsers.ts";
 import renderFeatures from "../ui-components/features.ts";
 import renderWarnings from "../ui-components/warnings.ts";
 
-
 function renderBrowsersQuery(browsers: Browsers, selectedBrowsers: Set<BrowserName>): string {
   return Object.entries(browsers)
     .filter(([browser, details]) => selectedBrowsers.has(<BrowserName>browser))
