@@ -1,23 +1,10 @@
+import BrowsersHelper from "../../browser.ts";
 import template from "../../flora.ts";
-import { Browsers, BrowserName } from "../../types.d.ts";
+import { BrowserName, ValidFeatures } from "../../types.d.ts";
 import { FeatureConfig, WhenRender } from "../types.d.ts";
 import renderBrowsers from "../ui-components/browsers.ts";
 import renderFeatures from "../ui-components/features.ts";
 import renderWarnings from "../ui-components/warnings.ts";
-
-function renderBrowsersQuery(browsers: Browsers, selectedBrowsers: Set<BrowserName>): string {
-  return Object.entries(browsers)
-    .filter(([browser, details]) => selectedBrowsers.has(<BrowserName>browser))
-    .map(([browser, details])=> `browser-${browser}=on`)
-    .join('&');
-}
-
-function renderFeaturesQuery(features: FeatureConfig, selectedFeatures: Set<string>): string {
-  return Object.entries(features)
-    .filter(([feature, details]) => selectedFeatures.has(feature))
-    .map(([feature, details])=> `feature-${feature}=on`)
-    .join('&');
-}
 
 const generateFirstInLastInCrossTab = (stableFeatures) => {
 
@@ -37,7 +24,7 @@ const generateFirstInLastInCrossTab = (stableFeatures) => {
   return output;
 };
 
-function renderResults(bcd: CompatData, browsers: Browsers, helper: BrowsersHelper, browserList, stableFeatures, selectedBrowsers: Set<BrowserName>, selectedFeatures: Set<ValidFeatures>, featureConfig: FeatureConfig): ReadableStream<any> {
+function renderResults(helper: BrowsersHelper, browserList, stableFeatures, selectedBrowsers: Set<BrowserName>, selectedFeatures: Set<ValidFeatures>, featureConfig: FeatureConfig): ReadableStream<any> {
 
   let currentCategory = "";
 
