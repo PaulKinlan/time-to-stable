@@ -7,8 +7,6 @@ import renderFeatures from "../ui-components/features.ts";
 import renderWarnings from "../ui-components/warnings.ts";
 import renderNavigation from "../ui-components/nav.ts";
 
-type BrowserCrossTabResult = { [K in BrowserName]?: { [K in BrowserName]?: number } }
-
 function generateCrossTab(features: CompatResult[], mustBeIn: BrowserName[]) {
 
   const output: {[K in BrowserName]?: {[K in BrowserName]?: number}} = {};
