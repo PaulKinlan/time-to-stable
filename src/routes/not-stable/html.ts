@@ -104,7 +104,7 @@ function renderResults({ helper, browserList, stableFeatures, selectedBrowsers, 
     </tbody>
   </table>
 
-  <h4>Number of APIs that are <strong>not in</strong> ${browserList}</h4>
+  <h4>Number of APIs that are <strong>not in</strong> all of ${browserList}</h4>
   <table>
     <caption>If a feature landed in the earliest browser in 20XX</caption>
     <thead>
@@ -141,17 +141,14 @@ ${template`${Object.entries(averages.firstLanding).map(([year, categories]) => {
             <th>API</th>
             <th>First Browser</th>
             <th>Date</th>
-            <th>Last Browser</th>
-            <th>Date</th>
-            <th>Days</th>
+            <th>Days in Limbo</th>
           </tr>
         </thead>
         <tbody>`;
     }
 
     response = template`${(heading != undefined) ? heading : ""}<tr>
-    <td><a href="${feature.mdn_url}">${feature.api}</a> ${("spec_url" in feature) ? template`<a href="${feature.spec_url}" title="${feature.api} specification">📋</a>` : template``}</td><td>${helper.getBrowserName(feature.firstBrowser)}</td><td>${feature.firstDate.toLocaleDateString()}</td>
-    <td>${helper.getBrowserName(feature.lastBrowser)}</td><td>${feature.lastDate.toLocaleDateString()}</td><td>${feature.ageInDays}</td></tr>`;
+    <td><a href="${feature.mdn_url}">${feature.api}</a> ${("spec_url" in feature) ? template`<a href="${feature.spec_url}" title="${feature.api} specification">📋</a>` : template``}</td><td>${helper.getBrowserName(feature.firstBrowser)}</td><td>${feature.firstDate.toLocaleDateString()}</td><td>${((Date.now() - feature.firstDate.getTime()) / (1000 * 24 * 60 * 60)).toFixed(0)}</td></tr>`;
 
     currentCategory = feature.category;
 
