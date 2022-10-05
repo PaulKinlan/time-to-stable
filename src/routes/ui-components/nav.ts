@@ -5,7 +5,7 @@ export default function renderBrowsers(): ReadableStream<any> {
   return template`<nav>
   <ol>
       <li><a href="/">Time to Stable</a></li>
-      <li><a href="/not-stable">Not Stable</a></li>
+      <li><a href="/not-stable">Not Yet Stable</a></li>
       <li><a href="/when-stable">Now Stable</a></li>
   </ol>
 </nav>`;

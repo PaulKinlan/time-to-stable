@@ -172,7 +172,7 @@ export default function render({ bcd, stableFeatures, submitted, browsers, brows
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
 	<meta name="author" content="Paul Kinlan">
   <meta charset="UTF-8">
-  <meta name="description" content="A list of features that are not yet considered stable for ${browserList}">
+  <meta name="description" content="A list of features that are not yet considered stable for ${browserList}.">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <link rel="shortcut icon" href="/images/favicon.png">
 	<link rel="author" href="https://paul.kinlan.me/">
@@ -191,7 +191,7 @@ export default function render({ bcd, stableFeatures, submitted, browsers, brows
   </head>
   <body>
     <header>
-      <h1>Not Stable</h1>
+      <h1>Not yet stable</h1>
     </header>
     ${renderNavigation()}
     <p>For a given set of browsers, what APIs <strong>are not yet</strong> in all of them.</p>
