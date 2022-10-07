@@ -138,6 +138,5 @@ export const getFeatures = (browsers: Browsers, mustBeIn: Set<BrowserName>, data
   Gets only the stable features.
 */
 export const getStableFeatures = (browsers: Browsers, mustBeIn: Set<BrowserName>, data: Identifier | CompatStatement): CompatResult[] => {
-
   return getFeatures(browsers, mustBeIn, data).filter(feature => feature.isStable);
 };
