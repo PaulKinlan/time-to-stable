@@ -16,7 +16,7 @@ export default function render({ bcd, features, browsers, browserList, selectedB
   const featureOutput: { [x: string]: any[]; } = {};
 
   for (const feature of features) {
-    const { lastDate } = feature;
+    const lastDate = feature.stableStats.last.added;
     const date = `${lastDate.getFullYear()}/${lastDate.getUTCMonth() + 1}`;
 
     if (date in featureOutput == false) featureOutput[date] = [];
