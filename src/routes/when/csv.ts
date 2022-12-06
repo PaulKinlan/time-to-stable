@@ -17,7 +17,7 @@ export default function render({ bcd, features, browsers, browserList, selectedB
     const { all, stableStats } = feature;
     const { first, last } = stableStats;
 
-    return template`${feature.api}|${featureConfig[feature.category].name}|${all[first.browser].name}|${first.added.toLocaleDateString()}|${all[first.browser].name}|${last.added.toLocaleDateString()}\n`
+    return template`${feature.api}|${featureConfig[feature.category].name}|${all[first.browser].name}|${first.added.toLocaleDateString()}|${all[last.browser].name}|${last.added.toLocaleDateString()}\n`
   })}`
 
   return template`${header}${results} `.then(data => new Response(data, {
