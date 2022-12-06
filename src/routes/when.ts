@@ -7,13 +7,13 @@ import { FeatureConfig, WhenRender } from "./types.d.ts";
 
 import htmlRender from './when/html.ts';
 import rssRender from './when/rss.ts';
-import _404Render from './errors/404.ts';
+import csvRender from './when/csv.ts';
 
 const controllers = {
-  'csv': _404Render,
+  'csv': csvRender,
   'html': htmlRender,
   'rss': rssRender
-}
+};
 
 const featureConfig: FeatureConfig = { 'api': { name: "DOM API" }, 'css': { name: "CSS" }, 'html': { name: "HTML" }, 'javascript': { name: "JS" } };
 
