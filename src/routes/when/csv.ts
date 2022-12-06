@@ -9,7 +9,14 @@ const renderBrowserTimes = (featureConfig, feature: CompatResult) => {
 };
 
 export default function render({ bcd, features, browsers, browserList, selectedBrowsers, selectedFeatures, helper, all, featureConfig, warnings }: WhenRender): Response {
-  const { __meta } = bcd
+  const { __meta } = bcd;
+
+  if (warnings.length > 0) {
+    return template`There are warnings.`.then(data => new Response(data, {
+      status: 501,
+      headers: { "content-type": "text/plain; charset=utf-8" }
+    }));
+  }
 
   const header = template`API|Category|First Browser|Release Date|Last Browser|Release Date\n`;
 
