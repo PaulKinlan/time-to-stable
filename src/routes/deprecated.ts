@@ -18,7 +18,7 @@ export default function render(request: Request, bcd: CompatData): Response {
 
   const url = new URL(request.url);
   const { __meta, browsers } = bcd;
-  const featureConfig: FeatureConfig = { 'api': { name: "DOM API" }, 'css': { name: "CSS" }, 'html': { name: "HTML" }, 'javascript': { name: "JS" } };
+  const featureConfig: FeatureConfig = { 'api': { name: "DOM API" }, 'css': { name: "CSS" }, 'html': { name: "HTML" }, 'http': { name: "HTTP" },  'javascript': { name: "JS" }, 'webassembly': { name: "WebAssembly" } };
 
   const warnings = new Array<string>();
   const helper = new BrowsersHelper(browsers);
