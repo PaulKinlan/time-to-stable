@@ -1,6 +1,6 @@
 
 import { getStableFeatures } from "../bcd.ts";
-import { default as Browsers, default as BrowsersHelper } from "../browser.ts";
+import { default as Browsers } from "../browser.ts";
 import { CompatData } from "../types.d.ts";
 import { parseResponse, parseSelectedBrowsers, parseSelectedFeatures } from "./_utils/request.ts";
 import { FeatureConfig, WhenRender } from "./types.d.ts";

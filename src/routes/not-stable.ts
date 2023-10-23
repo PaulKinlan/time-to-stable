@@ -1,5 +1,5 @@
 import { CompatData } from "../types.d.ts";
-import { getFeatures, getStableFeatures } from "../bcd.ts";
+import { getFeatures } from "../bcd.ts";
 import BrowsersHelper from "../browser.ts";
 import { parseResponse, parseSelectedBrowsers, parseSelectedFeatures } from "./_utils/request.ts";
 import { FeatureConfig, WhenRender } from "./types.d.ts";
@@ -16,7 +16,7 @@ const controllers = {
 export default function render(request: Request, bcd: CompatData): Response {
 
   const url = new URL(request.url);
-  const { __meta, browsers } = bcd;
+  const { browsers } = bcd;
   const featureConfig: FeatureConfig = { 'api': { name: "DOM API" }, 'css': { name: "CSS" }, 'html': { name: "HTML" }, 'http': { name: "HTTP" },  'javascript': { name: "JS" }, 'webassembly': { name: "WebAssembly" } };
 
   const warnings = new Array<string>();
