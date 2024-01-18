@@ -3,7 +3,9 @@ import { join } from "https://deno.land/std@0.152.0/path/mod.ts";
 import { contentType } from "https://deno.land/std@0.152.0/media_types/mod.ts";
 
 // @deno-types="https://esm.sh/@mdn/browser-compat-data@latest/types.d.ts"
-import bcd from "https://esm.sh/@mdn/browser-compat-data@latest";
+//import bcd from "https://esm.sh/@mdn/browser-compat-data@latest";
+import bcd from 'https://unpkg.com/@mdn/browser-compat-data' assert { type: 'json' };
+
 
 import index from "./src/routes/index.ts";
 import notStable from "./src/routes/not-stable.ts";
