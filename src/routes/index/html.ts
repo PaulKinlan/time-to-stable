@@ -34,7 +34,8 @@ function initApiCounts() {
     api: { total: 0, featureCount: 0 },
     css: { total: 0, featureCount: 0 },
     html: { total: 0, featureCount: 0 },
-    javascript: { total: 0, featureCount: 0 }
+    javascript: { total: 0, featureCount: 0 },
+    wasm: { total: 0, featureCount: 0 }
   }
 }
 
