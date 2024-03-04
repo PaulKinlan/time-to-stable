@@ -51,7 +51,7 @@ function initApiCounts() {
     html: { total: 0, featureCount: 0 },
     http: { total: 0, featureCount: 0 },
     javascript: { total: 0, featureCount: 0 },
-    wasm: { total: 0, featureCount: 0 },
+    webassembly: { total: 0, featureCount: 0 },
   };
 }
 
