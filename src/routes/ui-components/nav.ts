@@ -18,7 +18,7 @@ export default function renderNavigation(
 
   return template`<nav>
   <ol>
-      <li><a href="/">Time to Stable</a> (<a href="/?${selectedBrowsersQuery}&${selectedBrowsersQuery}">with selection</a>)</li>
+      <li><a href="/">Time to Stable</a> (<a href="/?${selectedBrowsersQuery}&${selectedFeaturesQuery}">with selection</a>)</li>
       <li><a href="/not-stable">Not Yet Stable</a></li>
       <li><a href="/when-stable">Now Stable</a></li>
       <li><a href="/experimental">Experimental APIs</a></li>
