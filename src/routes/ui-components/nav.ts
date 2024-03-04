@@ -19,10 +19,10 @@ export default function renderNavigation(
 
   const withSelection = (path: string) => {
     return selectedBrowsersQuery || selectedFeaturesQuery
-      ? template`<a href="${path}?${[
+      ? template`(<a href="${path}?${[
           selectedBrowsersQuery,
           selectedFeaturesQuery,
-        ].join("&")}">with selection</a>`
+        ].join("&")}">with selection</a>)`
       : template``;
   };
 
