@@ -200,7 +200,7 @@ export default function render({
     <header>
       <h1>Not yet stable</h1>
     </header>
-    ${renderNavigation()}
+    ${renderNavigation(selectedBrowsers, selectedFeatures)}
     <p>For a given set of browsers, what APIs <strong>are not yet</strong> in all of them.</p>
     <form method=GET action="/not-stable" >
       ${renderWarnings(warnings)}

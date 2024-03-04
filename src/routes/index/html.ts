@@ -415,7 +415,7 @@ export default function render({
     <header>
       <h1>Time to Stable</h1>
     </header>
-    ${renderNavigation()}
+    ${renderNavigation(selectedBrowsers, selectedFeatures)}
     <p>For a given set of browsers, what APIs are in all of them and how many days it take for the API to land in the first browser to the last.</p>
     <form method=GET action="/" >
       ${renderWarnings(warnings)}

@@ -305,7 +305,7 @@ export default function render({
     <header>
       <h1>Deprecated</h1>
     </header>
-    ${renderNavigation()}
+    ${renderNavigation(selectedBrowsers, selectedFeatures)}
     <p>For a given set of browsers, what APIs are removed in all of them how many days it take for the API to removed in the first browser to the last.</p>
     <form method=GET action="/removed" >
       ${renderWarnings(warnings)}

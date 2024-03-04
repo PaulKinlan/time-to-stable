@@ -1,6 +1,11 @@
 import BrowsersHelper from "../../browser.ts";
 import template from "../../flora.ts";
-import { Browsers, BrowserName, CompatResult, ValidFeatures } from "../../types.d.ts";
+import {
+  Browsers,
+  BrowserName,
+  CompatResult,
+  ValidFeatures,
+} from "../../types.d.ts";
 import { FeatureConfig, WhenRender } from "../types.d.ts";
 import renderBrowsers from "../ui-components/browsers.ts";
 import renderFeatures from "../ui-components/features.ts";
@@ -8,8 +13,14 @@ import renderWarnings from "../ui-components/warnings.ts";
 import renderNavigation from "../ui-components/nav.ts";
 import renderFooter from "../ui-components/footer.ts";
 
-function renderResults({ helper, browserList, features, selectedBrowsers, selectedFeatures, featureConfig }: WhenRender): ReadableStream<any> {
-
+function renderResults({
+  helper,
+  browserList,
+  features,
+  selectedBrowsers,
+  selectedFeatures,
+  featureConfig,
+}: WhenRender): ReadableStream<any> {
   // only show the features selected.
   const output = template`
   <h2>Summary</h2>
@@ -25,10 +36,21 @@ function renderResults({ helper, browserList, features, selectedBrowsers, select
     </tr>
   </thead>
   <tbody>
-  ${features.map(feature => template`
+  ${features.map(
+    (feature) => template`
     
       <tr>
-        <td>${("mdn_url" in feature && feature.mdn_url != undefined) ? `<a href="${feature.mdn_url}">${feature.api}</a>` : feature.api} ${("spec_url" in feature && feature.spec_url != undefined) ? template`<a href="${feature.spec_url}" title="${featureConfig[feature.category].name} specification">📋</a>` : template``}</td><td>${featureConfig[feature.category].name}</td>
+        <td>${
+          "mdn_url" in feature && feature.mdn_url != undefined
+            ? `<a href="${feature.mdn_url}">${feature.api}</a>`
+            : feature.api
+        } ${
+      "spec_url" in feature && feature.spec_url != undefined
+        ? template`<a href="${feature.spec_url}" title="${
+            featureConfig[feature.category].name
+          } specification">📋</a>`
+        : template``
+    }</td><td>${featureConfig[feature.category].name}</td>
       </tr>`
   )}
  </tbody>
@@ -37,9 +59,19 @@ function renderResults({ helper, browserList, features, selectedBrowsers, select
   return output;
 }
 
-export default function render({ bcd, features, submitted, browsers, browserList, selectedBrowsers, selectedFeatures, helper, featureConfig, warnings }: WhenRender): Response {
-
-  const { __meta } = bcd
+export default function render({
+  bcd,
+  features,
+  submitted,
+  browsers,
+  browserList,
+  selectedBrowsers,
+  selectedFeatures,
+  helper,
+  featureConfig,
+  warnings,
+}: WhenRender): Response {
+  const { __meta } = bcd;
 
   return template`<html>
 
@@ -69,7 +101,7 @@ export default function render({ bcd, features, submitted, browsers, browserList
     <header>
       <h1>All APIs</h1>
     </header>
-    ${renderNavigation()}
+    ${renderNavigation(selectedBrowsers, selectedFeatures)}
     <p>For a given set of browsers what is the API status</p>
     <form method=GET action="/all" >
       ${renderWarnings(warnings)}
@@ -79,10 +111,28 @@ export default function render({ bcd, features, submitted, browsers, browserList
       <input type=submit>
     </form>
     
-    ${(submitted && warnings.length == 0) ? renderResults({ bcd, browsers, helper, browserList, features, selectedBrowsers, selectedFeatures, featureConfig }) : ``}
+    ${
+      submitted && warnings.length == 0
+        ? renderResults({
+            bcd,
+            browsers,
+            helper,
+            browserList,
+            features,
+            selectedBrowsers,
+            selectedFeatures,
+            featureConfig,
+          })
+        : ``
+    }
      
     ${renderFooter(__meta)}
     </body>
-  </html>`
-    .then(data => new Response(data, { status: 200, headers: { 'content-type': 'text/html' } }));
+  </html>`.then(
+    (data) =>
+      new Response(data, {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      })
+  );
 }
