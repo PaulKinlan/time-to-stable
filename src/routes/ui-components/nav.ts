@@ -17,15 +17,36 @@ export default function renderNavigation(
     .map((feature) => `feature-${feature}=on`)
     .join("&");
 
+  const withSelection = (path: string) => {
+    return selectedBrowsersQuery || selectedFeaturesQuery
+      ? template(
+          `<a href="${path}?${[
+            selectedBrowsersQuery,
+            selectedFeaturesQuery,
+          ].join("&")}">with selection</a>`
+        )
+      : "";
+  };
+
   return template`<nav>
   <ol>
-      <li><a href="/">Time to Stable</a> (<a href="/?${selectedBrowsersQuery}&${selectedFeaturesQuery}">with selection</a>)</li>
-      <li><a href="/not-stable">Not Yet Stable</a></li>
-      <li><a href="/when-stable">Now Stable</a></li>
-      <li><a href="/experimental">Experimental APIs</a></li>
-      <li><a href="/deprecated">Deprecated APIs</a></li>
-      <li><a href="/removed">APIs that are no longer on the web</a></li>
-      <li><a href="/all">All APIs (for export)</a></li>
+      <li><a href="/">Time to Stable</a> ${withSelection("/")}</li>
+      <li><a href="/not-stable">Not Yet Stable</a> ${withSelection(
+        "/not-stable"
+      )}</li>
+      <li><a href="/when-stable">Now Stable</a> ${withSelection(
+        "/when-stable"
+      )}</li>
+      <li><a href="/experimental">Experimental APIs</a> ${withSelection(
+        "/experimental"
+      )}</li>
+      <li><a href="/deprecated">Deprecated APIs</a> ${withSelection(
+        "/deprecated"
+      )}</li>
+      <li><a href="/removed">APIs that are no longer on the web</a> ${withSelection(
+        "/removed"
+      )}</li>
+      <li><a href="/all">All APIs (for export)</a> ${withSelection("/all")}</li>
   </ol>
 </nav>`;
 }
