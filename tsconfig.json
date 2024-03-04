@@ -4,6 +4,7 @@
       "./types/types.d.ts",
       "https://esm.sh/@mdn/browser-compat-data@latest/types.d.ts"
     ],
-    "lib": ["dom", "esnext"]
+    "lib": ["dom", "esnext"],
+    "allowImportingTsExtensions": true
   }
 }

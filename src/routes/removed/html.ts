@@ -136,6 +136,8 @@ function renderResults({
   const tablulateSummary = generateFirstInLastInCrossTab(features);
   const averages = generateAverage(features);
 
+  console.log(tablulateSummary);
+
   const output = template`
   <h2>Summary</h2>
   
