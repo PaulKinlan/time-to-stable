@@ -4,6 +4,7 @@ export default function renderNavigation(
   selectedBrowsers?: Set<string>,
   selectedFeatures?: Set<string>
 ): ReadableStream<any> {
+  console.log(selectedBrowsers);
   const selectedBrowsersArray = Array.from(selectedBrowsers || []);
   const selectedFeaturesArray = Array.from(selectedFeatures || []);
 
