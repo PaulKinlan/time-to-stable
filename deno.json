@@ -1,3 +1,5 @@
 {
-
+  "tasks": {
+    "build": "deno main.ts"
+  }
 }
