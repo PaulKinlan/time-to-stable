@@ -1,5 +1,5 @@
 {
   "tasks": {
-    "build": "deno main.ts"
+    "build": "deno --allow-import --allow-net main.ts"
   }
 }
