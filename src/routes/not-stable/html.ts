@@ -12,6 +12,7 @@ import renderFeatures from "../ui-components/features.ts";
 import renderWarnings from "../ui-components/warnings.ts";
 import renderNavigation from "../ui-components/nav.ts";
 import renderFooter from "../ui-components/footer.ts";
+import renderExampleLinks from "../ui-components/example-links.ts";
 
 function generateCrossTab(features: CompatResult[], mustBeIn: BrowserName[]) {
   const output: { [K in BrowserName]?: { [K in BrowserName]?: number } } = {};
@@ -202,6 +203,7 @@ export default function render({
     </header>
     ${renderNavigation(selectedBrowsers, selectedFeatures)}
     <p>For a given set of browsers, what APIs <strong>are not yet</strong> in all of them.</p>
+    ${renderExampleLinks("/not-stable")}
     <form method=GET action="/not-stable" >
       ${renderWarnings(warnings)}
       ${renderBrowsers(browsers, selectedBrowsers)}
