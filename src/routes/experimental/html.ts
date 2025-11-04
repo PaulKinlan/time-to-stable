@@ -12,6 +12,7 @@ import renderFeatures from "../ui-components/features.ts";
 import renderWarnings from "../ui-components/warnings.ts";
 import renderNavigation from "../ui-components/nav.ts";
 import renderFooter from "../ui-components/footer.ts";
+import renderExampleLinks from "../ui-components/example-links.ts";
 
 function renderResults({
   helper,
@@ -127,6 +128,7 @@ export default function render({
     </header>
     ${renderNavigation(selectedBrowsers, selectedFeatures)}
     <p>For a given set of browsers what APIs are still considred experimental, and how long have they been experimental?</p>
+    ${renderExampleLinks("/experimental")}
     <form method=GET action="/experimental">
       ${renderWarnings(warnings)}
       ${renderBrowsers(browsers, selectedBrowsers)}

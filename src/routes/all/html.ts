@@ -12,6 +12,7 @@ import renderFeatures from "../ui-components/features.ts";
 import renderWarnings from "../ui-components/warnings.ts";
 import renderNavigation from "../ui-components/nav.ts";
 import renderFooter from "../ui-components/footer.ts";
+import renderExampleLinks from "../ui-components/example-links.ts";
 
 function renderResults({
   helper,
@@ -103,6 +104,7 @@ export default function render({
     </header>
     ${renderNavigation(selectedBrowsers, selectedFeatures)}
     <p>For a given set of browsers what is the API status</p>
+    ${renderExampleLinks("/all")}
     <form method=GET action="/all" >
       ${renderWarnings(warnings)}
       ${renderBrowsers(browsers, selectedBrowsers)}

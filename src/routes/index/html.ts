@@ -12,6 +12,7 @@ import renderFeatures from "../ui-components/features.ts";
 import renderWarnings from "../ui-components/warnings.ts";
 import renderNavigation from "../ui-components/nav.ts";
 import renderFooter from "../ui-components/footer.ts";
+import renderExampleLinks from "../ui-components/example-links.ts";
 
 type BrowserCrossTabResult = {
   [K in BrowserName]?: { [K in BrowserName]?: number };
@@ -417,6 +418,7 @@ export default function render({
     </header>
     ${renderNavigation(selectedBrowsers, selectedFeatures)}
     <p>For a given set of browsers, what APIs are in all of them and how many days it take for the API to land in the first browser to the last.</p>
+    ${renderExampleLinks("/")}
     <form method=GET action="/" >
       ${renderWarnings(warnings)}
       ${renderBrowsers(browsers, selectedBrowsers)}

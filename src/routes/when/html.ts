@@ -6,6 +6,7 @@ import renderFeatures from "../ui-components/features.ts";
 import renderWarnings from "../ui-components/warnings.ts";
 import renderNavigation from "../ui-components/nav.ts";
 import renderFooter from "../ui-components/footer.ts";
+import renderExampleLinks from "../ui-components/example-links.ts";
 
 function renderBrowsersQuery(
   browsers: Browsers,
@@ -76,6 +77,7 @@ export default function render({
     ${renderNavigation(selectedBrowsers, selectedFeatures)}
     <p>"New on the Web": For a given set of browsers, what APIs became stable and when, ordered reverse chronologically.</p>
     <p>It's a great source of information for posts like <a href="https://web.dev/tags/new-to-the-web/">this</a></p>
+    ${renderExampleLinks("/when-stable")}
     <form method=GET action="/when-stable">
       ${renderWarnings(warnings)}
       ${renderBrowsers(browsers, selectedBrowsers)}
