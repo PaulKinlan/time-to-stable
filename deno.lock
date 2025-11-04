@@ -1,9 +1,7 @@
 {
   "version": "4",
   "redirects": {
-    "https://esm.sh/@mdn/browser-compat-data@latest/types.d.ts": "https://esm.sh/@mdn/browser-compat-data@5.6.35/types.d.ts",
-    "https://unpkg.com/@mdn/browser-compat-data": "https://unpkg.com/@mdn/browser-compat-data@5.6.35",
-    "https://unpkg.com/@mdn/browser-compat-data@5.6.35": "https://unpkg.com/@mdn/browser-compat-data@5.6.35/data.json"
+    "https://esm.sh/@mdn/browser-compat-data@latest/types.d.ts": "https://esm.sh/@mdn/browser-compat-data@5.6.35/types.d.ts"
   },
   "remote": {
     "https://deno.land/std@0.152.0/_util/assert.ts": "e94f2eb37cebd7f199952e242c77654e43333c1ac4c5c700e929ea3aa5489f74",
@@ -53,6 +51,5 @@
     "https://jspm.dev/npm:xml-js@1!cjs": "dcf9cadb69c21bb49764df0242d88e65cdec87aecc631ba29f306c81022103a3",
     "https://jspm.dev/npm:xml-js@1.6.11!cjs": "6bf4938a0cc9cfcc23a6748dc241391fa69fb76fa24035f0cc45eabdd4adb5e9",
     "https://jspm.dev/npm:xml-js@1.6.11/_/de28c1c0.js": "9f5b1c7317b340f60f583ec793baec3f24c06db5324a165f9774db02ffb9b43d",
-    "https://unpkg.com/@mdn/browser-compat-data@5.6.35/data.json": "04bce9db790c37287601843c0d9da525a36ae54d9d734007734890403b4f8537"
   }
 }
