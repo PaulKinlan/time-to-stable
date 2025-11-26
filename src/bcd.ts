@@ -213,14 +213,27 @@ const isFeatureStable = (featureSupport: CompatStatement["support"], browsers: B
 const getFeatureSupport = (featureSupport: CompatStatement["support"], browsers: Browsers, mustBeIn: Set<BrowserName>): BrowserState[] => {
   let support: SimpleSupportStatement;
   let browserState: BrowserState = {};
+  // Collect notes from all entries in an array support statement
+  let allNotes: string[] = [];
 
   let browser: keyof Partial<Record<BrowserName, SupportStatement>>;
 
   for (browser in featureSupport) {
     let supportStatement = featureSupport[browser];
+    allNotes = [];
 
     if (supportStatement && "version_removed" in supportStatement === false && Array.isArray(supportStatement)) {
       support = supportStatement[0]; // Smash in the first answer for now because it is the most recent.
+      // Collect notes from all entries in the array
+      for (const entry of supportStatement) {
+        if (entry.notes) {
+          if (Array.isArray(entry.notes)) {
+            allNotes.push(...entry.notes);
+          } else {
+            allNotes.push(entry.notes);
+          }
+        }
+      }
     } else {
       support = <SimpleSupportStatement>supportStatement;
     }
@@ -265,6 +278,16 @@ const getFeatureSupport = (featureSupport: CompatStatement["support"], browsers:
     if (version_added in browsers[browserKey].releases) {
       browserState[browserKey].version_added = version_added;
       browserState[browserKey].date_added = browsers[browserKey].releases[version_added].release_date;
+    }
+
+    // Include notes from all entries (array or single) if present
+    if (allNotes.length > 0) {
+      browserState[browserKey].notes = allNotes.length === 1 ? allNotes[0] : allNotes;
+    } else if (support.notes) {
+      browserState[browserKey].notes = support.notes;
+    }
+    if (support.partial_implementation) {
+      browserState[browserKey].partial_implementation = support.partial_implementation;
     }
   }
 

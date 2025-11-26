@@ -7,6 +7,7 @@ import renderWarnings from "../ui-components/warnings.ts";
 import renderNavigation from "../ui-components/nav.ts";
 import renderFooter from "../ui-components/footer.ts";
 import renderExampleLinks from "../ui-components/example-links.ts";
+import { renderFeatureNotes } from "../ui-components/notes.ts";
 
 function renderBrowsersQuery(
   browsers: Browsers,
@@ -68,6 +69,16 @@ export default function render({
     color: red;
   }
 
+  .feature-notes {
+    font-size: 0.85em;
+  }
+
+  .feature-notes .note {
+    display: block;
+    margin: 0.25em 0;
+    color: #666;
+  }
+
   </style>
   </head>
   <body>
@@ -111,6 +122,7 @@ export default function render({
               <th>Last Browser</th>
               <th>Date</th>
               <th>Days</th>
+              <th>Notes</th>
             </tr>
           </thead>
           <tbody>`;
@@ -132,7 +144,7 @@ export default function render({
           feature.stableStats.last.browser
         )}</td><td>${feature.stableStats.last.added.toLocaleDateString()}</td><td>${
              feature.stableStats.ageInDays
-           }</td></tr>`;
+           }</td><td>${renderFeatureNotes(feature)}</td></tr>`;
 
            currentMonth = date;
 

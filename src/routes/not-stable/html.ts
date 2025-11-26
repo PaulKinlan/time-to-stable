@@ -13,6 +13,7 @@ import renderWarnings from "../ui-components/warnings.ts";
 import renderNavigation from "../ui-components/nav.ts";
 import renderFooter from "../ui-components/footer.ts";
 import renderExampleLinks from "../ui-components/example-links.ts";
+import { renderFeatureNotes } from "../ui-components/notes.ts";
 
 function generateCrossTab(features: CompatResult[], mustBeIn: BrowserName[]) {
   const output: { [K in BrowserName]?: { [K in BrowserName]?: number } } = {};
@@ -126,6 +127,7 @@ function renderResults({
             <th>First Browser</th>
             <th>Date</th>
             <th>Days in Limbo</th>
+            <th>Notes</th>
           </tr>
         </thead>
         <tbody>`;
@@ -145,7 +147,7 @@ function renderResults({
     )}</td><td>${feature.stableStats.first.added.toLocaleDateString()}</td><td>${(
       (Date.now() - feature.stableStats.first.added.getTime()) /
       (1000 * 24 * 60 * 60)
-    ).toFixed(0)}</td></tr>`;
+    ).toFixed(0)}</td><td>${renderFeatureNotes(feature)}</td></tr>`;
 
     currentCategory = feature.category;
 
@@ -193,6 +195,16 @@ export default function render({
 
   form span.warning {
     color: red;
+  }
+
+  .feature-notes {
+    font-size: 0.85em;
+  }
+
+  .feature-notes .note {
+    display: block;
+    margin: 0.25em 0;
+    color: #666;
   }
 
   </style>
