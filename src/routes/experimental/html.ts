@@ -13,6 +13,7 @@ import renderWarnings from "../ui-components/warnings.ts";
 import renderNavigation from "../ui-components/nav.ts";
 import renderFooter from "../ui-components/footer.ts";
 import renderExampleLinks from "../ui-components/example-links.ts";
+import { renderFeatureNotes } from "../ui-components/notes.ts";
 
 function renderResults({
   helper,
@@ -55,6 +56,7 @@ function renderResults({
             <th>Last Browser</th>
             <th>Date</th>
             <th>Days in experimentation</th>
+            <th>Notes</th>
           </tr>
         </thead>
         <tbody>`;
@@ -72,7 +74,7 @@ function renderResults({
     }</td><td>${firstBrowserName}</td><td>${first.added.toLocaleDateString()}</td>
     <td>${lastBrowserName}</td><td>${last?.added.toLocaleDateString()}</td><td>${ageInDays.toFixed(
       0
-    )}</td></tr>`;
+    )}</td><td>${renderFeatureNotes(feature)}</td></tr>`;
 
     currentCategory = feature.category;
 
@@ -118,6 +120,16 @@ export default function render({
 
   form span.warning {
     color: red;
+  }
+
+  .feature-notes {
+    font-size: 0.85em;
+  }
+
+  .feature-notes .note {
+    display: block;
+    margin: 0.25em 0;
+    color: #666;
   }
 
   </style>
