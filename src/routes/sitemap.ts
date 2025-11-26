@@ -67,19 +67,16 @@ export default function render(request: Request, _bcd: CompatData): Response {
   
   const today = new Date().toISOString().split('T')[0];
   
-  let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-`;
+  const urls: string[] = [];
 
   // Add base pages without query parameters
   for (const page of PAGES) {
-    sitemap += `  <url>
+    urls.push(`  <url>
     <loc>${escapeXml(baseUrl + page.path)}</loc>
     <lastmod>${today}</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
-  </url>
-`;
+  </url>`);
   }
 
   // Add pages with browser and feature combinations
@@ -89,18 +86,20 @@ export default function render(request: Request, _bcd: CompatData): Response {
         const queryString = generateQueryString(browsers, features);
         const fullUrl = `${baseUrl}${page.path}?${queryString}`;
         
-        sitemap += `  <url>
+        urls.push(`  <url>
     <loc>${escapeXml(fullUrl)}</loc>
     <lastmod>${today}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-  </url>
-`;
+  </url>`);
       }
     }
   }
 
-  sitemap += `</urlset>`;
+  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.join('\n')}
+</urlset>`;
 
   return new Response(sitemap, {
     status: 200,
