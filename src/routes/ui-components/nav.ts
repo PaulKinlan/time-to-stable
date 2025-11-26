@@ -45,6 +45,7 @@ export default function renderNavigation(
         "/removed"
       )}</li>
       <li><a href="/all">All APIs (for export)</a> ${withSelection("/all")}</li>
+      <li><a href="/sitemap.xml">Sitemap</a></li>
   </ol>
 </nav>`;
 }

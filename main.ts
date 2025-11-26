@@ -14,6 +14,7 @@ import deprecated from "./src/routes/deprecated.ts";
 import experimental from "./src/routes/experimental.ts";
 import all from "./src/routes/all.ts";
 import removed from "./src/routes/removed.ts";
+import sitemap from "./src/routes/sitemap.ts";
 import { Route } from "./types/types.d.ts";
 // Init
 
@@ -99,6 +100,12 @@ serve((req: Request) => {
       new URLPattern({ pathname: "/all" }),
       (request) => {
         return all(request, bcd);
+      },
+    ],
+    [
+      new URLPattern({ pathname: "/sitemap.xml" }),
+      (request) => {
+        return sitemap(request, bcd);
       },
     ],
     // Fall through.
