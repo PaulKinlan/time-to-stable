@@ -220,11 +220,12 @@ const getFeatureSupport = (featureSupport: CompatStatement["support"], browsers:
 
   for (browser in featureSupport) {
     let supportStatement = featureSupport[browser];
+    // Reset notes for each browser - we collect notes per-browser from all array entries
     allNotes = [];
 
     if (supportStatement && "version_removed" in supportStatement === false && Array.isArray(supportStatement)) {
       support = supportStatement[0]; // Smash in the first answer for now because it is the most recent.
-      // Collect notes from all entries in the array
+      // Collect notes from all entries in the array (e.g., current support + historical partial implementations)
       for (const entry of supportStatement) {
         if (entry.notes) {
           if (Array.isArray(entry.notes)) {

@@ -5,6 +5,9 @@ import { BrowserState } from "../types.d.ts";
 /**
  * Renders notes for a feature's browser support.
  * Notes are rendered as a small info section below or beside the feature name.
+ * 
+ * Note: The notes content comes from the trusted @mdn/browser-compat-data package
+ * and may contain HTML markup (like <code>, <a> tags) that should be rendered as-is.
  */
 export function renderFeatureNotes(feature: CompatResult): ReadableStream<any> | string {
   const all = feature.all;
