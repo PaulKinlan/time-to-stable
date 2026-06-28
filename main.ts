@@ -59,7 +59,22 @@ class StaticFileHandler {
   }
 }
 
-Deno.serve((req: Request) => {
+// Canonicalize onto the new Deno Deploy host: legacy URLs 301 to the new site
+// (path + query preserved), and HTML pages also carry a <link rel="canonical">.
+const CANONICAL_HOST = "time-to-stable.paulkinlan-ea.deno.net";
+const OLD_HOST = "time-to-stable.deno.dev";
+
+Deno.serve(async (req: Request) => {
+  const reqUrl = new URL(req.url);
+  // 301 the old/classic host to the new one, preserving the path + query so
+  // every old URL lands on its exact new-site equivalent.
+  if (reqUrl.hostname === OLD_HOST) {
+    reqUrl.protocol = "https:";
+    reqUrl.hostname = CANONICAL_HOST;
+    reqUrl.port = "";
+    return Response.redirect(reqUrl.toString(), 301);
+  }
+
   const url = req.url;
   const staticFiles = new StaticFileHandler("static");
   let response: Response | Promise<Response> = new Response("Not found", { status: 404 });
@@ -129,5 +144,25 @@ Deno.serve((req: Request) => {
     }
   }
 
-  return response;
+  const res = await response;
+
+  // Point every HTML page's canonical at the new-site URL (same path + query).
+  const ct = res.headers.get("content-type") || "";
+  if (ct.includes("text/html")) {
+    const canonical = `https://${CANONICAL_HOST}${reqUrl.pathname}${reqUrl.search}`;
+    const linkTag = `<link rel="canonical" href="${canonical}">`;
+    const body = await res.text();
+    const withCanonical = body.includes("</head>")
+      ? body.replace("</head>", `${linkTag}</head>`)
+      : `${linkTag}${body}`;
+    const headers = new Headers(res.headers);
+    headers.delete("content-length"); // body length changed
+    return new Response(withCanonical, {
+      status: res.status,
+      statusText: res.statusText,
+      headers,
+    });
+  }
+
+  return res;
 });
