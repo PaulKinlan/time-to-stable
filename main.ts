@@ -1,4 +1,6 @@
-import { serve } from "https://deno.land/std@0.152.0/http/server.ts";
+// Use the native Deno.serve (the pattern the new Deno Deploy expects — it
+// auto-binds to the platform-assigned port) instead of the deprecated
+// std@0.152 http `serve`, which hardcoded :8000.
 import { join } from "https://deno.land/std@0.152.0/path/mod.ts";
 import { contentType } from "https://deno.land/std@0.152.0/media_types/mod.ts";
 
@@ -57,7 +59,7 @@ class StaticFileHandler {
   }
 }
 
-serve((req: Request) => {
+Deno.serve((req: Request) => {
   const url = req.url;
   const staticFiles = new StaticFileHandler("static");
   let response: Response | Promise<Response> = new Response("Not found", { status: 404 });
