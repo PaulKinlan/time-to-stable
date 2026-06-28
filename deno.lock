@@ -1,7 +1,23 @@
 {
-  "version": "4",
+  "version": "5",
+  "specifiers": {
+    "npm:@types/node@*": "24.2.0"
+  },
+  "npm": {
+    "@types/node@24.2.0": {
+      "integrity": "sha512-3xyG3pMCq3oYCNg7/ZP+E1ooTaGB4cG8JWRsqqOYQdbWNY4zbaV0Ennrd7stjiJEFZCaybcIgpTjJWHRfBSIDw==",
+      "dependencies": [
+        "undici-types"
+      ]
+    },
+    "undici-types@7.10.0": {
+      "integrity": "sha512-t5Fy/nfn+14LuOc2KNYg75vZqClpAiqscVvMygNnlsHBFpSXdJaYtXMcdNLpl/Qvc3P2cB3s6lOV51nqsFq4ag=="
+    }
+  },
   "redirects": {
-    "https://esm.sh/@mdn/browser-compat-data@latest/types.d.ts": "https://esm.sh/@mdn/browser-compat-data@5.6.35/types.d.ts"
+    "https://esm.sh/@types/sax@~1.2.7/index.d.ts": "https://esm.sh/@types/sax@1.2.7/index.d.ts",
+    "https://esm.sh/sax@^1.2.4?target=denonext": "https://esm.sh/sax@1.6.0?target=denonext",
+    "https://esm.sh/xml-js@^1.6.11?target=denonext": "https://esm.sh/xml-js@1.6.11?target=denonext"
   },
   "remote": {
     "https://deno.land/std@0.152.0/_util/assert.ts": "e94f2eb37cebd7f199952e242c77654e43333c1ac4c5c700e929ea3aa5489f74",
@@ -28,28 +44,13 @@
     "https://deno.land/std@0.152.0/path/posix.ts": "c1f7afe274290ea0b51da07ee205653b2964bd74909a82deb07b69a6cc383aaa",
     "https://deno.land/std@0.152.0/path/separator.ts": "fe1816cb765a8068afb3e8f13ad272351c85cbc739af56dacfc7d93d710fe0f9",
     "https://deno.land/std@0.152.0/path/win32.ts": "bd7549042e37879c68ff2f8576a25950abbfca1d696d41d82c7bca0b7e6f452c",
-    "https://jspm.dev/feed": "6baeab9736fd6e5af7c47e7f7995c8f29d931a8553ef81f45bff21a18c47df63",
-    "https://jspm.dev/npm:@jspm/core@2.0.1/_/57403c48.js": "3fa9c20fb03311a58a652563a4c935f6e7666113d2f725a6458893bfbac75e5f",
-    "https://jspm.dev/npm:@jspm/core@2.0.1/_/633ae550.js": "65a4b416c1a22251ee020c55496de44a08ae247d4108898dfc0f4753df829fc5",
-    "https://jspm.dev/npm:@jspm/core@2.0.1/_/8dc3f476.js": "55ff556fbd358ec01e78b1bc31d4d22baf1479046e42ea17f712b58ea96ba535",
-    "https://jspm.dev/npm:@jspm/core@2.0.1/_/8ddf35de.js": "c05f3a1431f18571f87b59b7d3cda65c8983712c9b424b5574623975dcc68863",
-    "https://jspm.dev/npm:@jspm/core@2.0.1/_/a17f45f2.js": "a36e172b43861a826c2258b8735525a1b13eb59c198ee808b016586d02dab38f",
-    "https://jspm.dev/npm:@jspm/core@2.0.1/_/a421dfba.js": "ec016925d8e0ec5e5b56c0847212c1113edce320f5f6920d241ee00ee115d172",
-    "https://jspm.dev/npm:@jspm/core@2.0.1/_/cb95b980.js": "e20e42c770070c4326cb18192218b59e90a5378cdc57897f0c5f3b99ae054f07",
-    "https://jspm.dev/npm:@jspm/core@2.0.1/_/e0803811.js": "1f6fe590fd0eeb59d9911633c388a4d97bea171f10ad260bc63b6702eb6d2e25",
-    "https://jspm.dev/npm:@jspm/core@2.0.1/nodelibs/buffer": "f6bd0a893f7d7d48422389dc81a2923809fbd24c2d6352c7f4bdd29dcad7154b",
-    "https://jspm.dev/npm:@jspm/core@2.0.1/nodelibs/events": "e5cc37092fddd5ac75814ca2a779eda7977ef43b0b410d90c8f9323f89d80cb4",
-    "https://jspm.dev/npm:@jspm/core@2.0.1/nodelibs/stream": "bbc5a30284349f7be148a0a9e81fbdf30d52abaf9b155554abce757bdffac50a",
-    "https://jspm.dev/npm:@jspm/core@2.0.1/nodelibs/string_decoder": "697fb7f5f779b23349f8dfae415efa3ef3a235ef89afeaa3d08455c29e149c2f",
-    "https://jspm.dev/npm:@jspm/core@2.0.1/nodelibs/util": "f22fa23c828774618e6f8705ce6705f5a4e1d939efc98af445805d6d9a9e4a44",
-    "https://jspm.dev/npm:@jspm/core@2/nodelibs/buffer": "229bdbb9a5042d5977545e4ff66f49e866bf7103f4df4a7b60af203625ac60b0",
-    "https://jspm.dev/npm:@jspm/core@2/nodelibs/stream": "6f2493f1eb38cf746a9583c8eb5b72d69dbdc9adb9cd34e7d013e6561e94d37e",
-    "https://jspm.dev/npm:@jspm/core@2/nodelibs/string_decoder": "ba0424760f9acc4e672217a88a0e4dbb2bfccdf106dbc3d9104e13f20aa1a7f9",
-    "https://jspm.dev/npm:feed@4.2.2!cjs": "0a88ea0fe4efc184b7decb91ba735f7dd8d80ad662dff5a3da484c28dad93b21",
-    "https://jspm.dev/npm:sax@1!cjs": "937367186e0a6bd36db719cebc734f253d6cc25ab15ba91bcdd1aa6bde29c300",
-    "https://jspm.dev/npm:sax@1.3.0!cjs": "840ca3b8e1e7cd3208b9d7d937a5fa686d8de8e7de321a7da2f766aead088fcf",
-    "https://jspm.dev/npm:xml-js@1!cjs": "dcf9cadb69c21bb49764df0242d88e65cdec87aecc631ba29f306c81022103a3",
-    "https://jspm.dev/npm:xml-js@1.6.11!cjs": "6bf4938a0cc9cfcc23a6748dc241391fa69fb76fa24035f0cc45eabdd4adb5e9",
-    "https://jspm.dev/npm:xml-js@1.6.11/_/de28c1c0.js": "9f5b1c7317b340f60f583ec793baec3f24c06db5324a165f9774db02ffb9b43d"
+    "https://esm.sh/@mdn/browser-compat-data@5.6.35": "fa39a0d702ecd9be3b412387af752df26fc6ac3e77fc7abd47b54adc53332511",
+    "https://esm.sh/@mdn/browser-compat-data@5.6.35/denonext/browser-compat-data.mjs": "966bbcf103b796de8d00c9862b0b77a9bc56781fee21abf5a85747c4e6c39d54",
+    "https://esm.sh/feed@4.2.2": "dca62237661ed6cf5ca20d97a9138cc5727054bb5d1f741676402e7e95446acb",
+    "https://esm.sh/feed@4.2.2/denonext/feed.mjs": "cd62fd7f1ce84670f17fa404d1d7d4da0b22346af2202be860767977463d5e37",
+    "https://esm.sh/sax@1.6.0/denonext/sax.mjs": "448cfc6c0fc4f1e2c38c864fe6a7b100a17116d2f14e64c065090dbc38ea8a3d",
+    "https://esm.sh/sax@1.6.0?target=denonext": "90edf8aea409972a7be1a323331a9c428e1db378e21354058bf2e67cf00fd405",
+    "https://esm.sh/xml-js@1.6.11/denonext/xml-js.mjs": "e1863b42f0016edd5321d08aae2e92f6f856027ed813d5825a413fbbc0dfb875",
+    "https://esm.sh/xml-js@1.6.11?target=denonext": "9f30bf1857f9da9c902c290b59f6b399c973d3dc7e35f11c5db2502aad733f63"
   }
 }

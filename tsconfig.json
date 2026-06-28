@@ -2,7 +2,7 @@
   "compilerOptions": {
     "types": [
       "./types/types.d.ts",
-      "https://esm.sh/@mdn/browser-compat-data@latest/types.d.ts"
+      "https://esm.sh/@mdn/browser-compat-data@5.6.35/types.d.ts"
     ],
     "lib": ["dom", "esnext"],
     "allowImportingTsExtensions": true

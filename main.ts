@@ -2,9 +2,12 @@ import { serve } from "https://deno.land/std@0.152.0/http/server.ts";
 import { join } from "https://deno.land/std@0.152.0/path/mod.ts";
 import { contentType } from "https://deno.land/std@0.152.0/media_types/mod.ts";
 
-// @deno-types="https://esm.sh/@mdn/browser-compat-data@latest/types.d.ts"
-//import bcd from "https://esm.sh/@mdn/browser-compat-data@latest";
-import bcd from 'https://unpkg.com/@mdn/browser-compat-data' with { type: 'json' };
+// @deno-types="https://esm.sh/@mdn/browser-compat-data@5.6.35/types.d.ts"
+// Import via esm.sh (in Deno's default --allow-import allowlist) instead of
+// unpkg.com (which is NOT, so the new Deno Deploy build failed with "Requires
+// import access to unpkg.com"). esm.sh serves it as an ES module whose default
+// export is the compat-data object, so no `with { type: "json" }` is needed.
+import bcd from "https://esm.sh/@mdn/browser-compat-data@5.6.35";
 
 
 import index from "./src/routes/index.ts";

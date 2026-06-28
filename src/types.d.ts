@@ -1,7 +1,7 @@
-import { BrowserName, StatusBlock } from "https://esm.sh/@mdn/browser-compat-data@latest/types.d.ts";
+import { BrowserName, StatusBlock } from "https://esm.sh/@mdn/browser-compat-data@5.6.35/types.d.ts";
 import { BrowserState } from "./routes/types.d.ts";
 
-export * from "https://esm.sh/@mdn/browser-compat-data@latest/types.d.ts";
+export * from "https://esm.sh/@mdn/browser-compat-data@5.6.35/types.d.ts";
 export type ValidFeatures = 'api' | 'css' | 'html' | 'http' | 'javascript' | 'webassembly';
 export type BrowserDate = { browser: BrowserName, added: Date };
 

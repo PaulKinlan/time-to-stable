@@ -1,5 +1,7 @@
 import { WhenRender } from "../types.d.ts";
-import { Feed } from 'https://jspm.dev/feed';
+// esm.sh (allowlisted by Deno's default --allow-import) instead of jspm.dev
+// (not allowlisted → broke the Deno Deploy build).
+import { Feed } from "https://esm.sh/feed@4.2.2";
 
 export default function render({ bcd, features, browsers, browserList, selectedBrowsers, selectedFeatures, helper, featureConfig, warnings }: WhenRender): Response {
   const { __meta } = bcd
