@@ -1,111 +1,162 @@
-import { CompatData, BrowserName, ValidFeatures } from "../types.d.ts";
+import { BROWSER_PRESETS, CATEGORIES } from "../analysis/query.ts";
+import { cleanIsoDate } from "../analysis/support.ts";
+import { escapeXml } from "../formats/rss.ts";
+import type { RouteContext } from "./shared.ts";
 
-// Main pages available in the application
-const PAGES = [
-  { path: "/", name: "Time to Stable", description: "APIs stable across browsers" },
-  { path: "/not-stable", name: "Not Yet Stable", description: "APIs not yet stable" },
-  { path: "/when-stable", name: "Now Stable", description: "When APIs became stable" },
-  { path: "/experimental", name: "Experimental APIs", description: "Experimental APIs" },
-  { path: "/deprecated", name: "Deprecated APIs", description: "Deprecated APIs" },
-  { path: "/removed", name: "Removed APIs", description: "APIs removed from the web" },
-  { path: "/all", name: "All APIs", description: "All APIs for export" },
-];
+export function handleRobotsTxt(ctx: RouteContext): Response {
+  const body = `User-agent: *
+Allow: /
+Allow: /compare/
+Allow: /stories/
+Allow: /feature/
+Allow: /baseline
+Allow: /not-stable
+Allow: /when-stable
+Allow: /llms.txt
+Allow: /llms-full.txt
+Allow: /openapi.json
+Allow: /sitemaps/
+Disallow: /api/admin/
+Disallow: /*?*page=
+Disallow: /*?*q=
+Disallow: /*?*sort=
 
-// Common browser combinations for sitemap - popular combinations users would search for
-const BROWSER_COMBINATIONS: BrowserName[][] = [
-  ["chrome", "firefox"],
-  ["chrome", "safari"],
-  ["chrome", "edge"],
-  ["firefox", "safari"],
-  ["firefox", "edge"],
-  ["safari", "edge"],
-  ["chrome", "firefox", "safari"],
-  ["chrome", "firefox", "edge"],
-  ["chrome", "safari", "edge"],
-  ["firefox", "safari", "edge"],
-  ["chrome", "firefox", "safari", "edge"],
-  ["chrome", "chrome_android"],
-  ["safari", "safari_ios"],
-  ["chrome", "firefox", "safari", "edge", "chrome_android", "safari_ios"],
-];
-
-// Feature combinations - covering all valid features
-const FEATURE_COMBINATIONS: ValidFeatures[][] = [
-  ["api"],
-  ["css"],
-  ["html"],
-  ["javascript"],
-  ["http"],
-  ["webassembly"],
-  ["api", "css"],
-  ["api", "html"],
-  ["api", "javascript"],
-  ["css", "html"],
-  ["api", "css", "html"],
-  ["api", "css", "html", "javascript"],
-  ["api", "css", "html", "javascript", "http", "webassembly"],
-];
-
-function generateQueryString(browsers: BrowserName[], features: ValidFeatures[]): string {
-  const browserParams = browsers.map(b => `browser-${b}=on`).join("&");
-  const featureParams = features.map(f => `feature-${f}=on`).join("&");
-  return [browserParams, featureParams].filter(Boolean).join("&");
+Sitemap: ${ctx.origin}/sitemap.xml
+`;
+  return new Response(body, {
+    status: 200,
+    headers: {
+      "content-type": "text/plain; charset=utf-8",
+      "cache-control": "public, max-age=3600",
+    },
+  });
 }
 
-function escapeXml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
+export function handleSitemapIndex(ctx: RouteContext): Response {
+  const lastmod = ctx.manifest.bcdTimestamp.slice(0, 10);
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>${escapeXml(`${ctx.origin}/sitemaps/core.xml`)}</loc>
+    <lastmod>${escapeXml(lastmod)}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${escapeXml(`${ctx.origin}/sitemaps/features.xml`)}</loc>
+    <lastmod>${escapeXml(lastmod)}</lastmod>
+  </sitemap>
+</sitemapindex>`;
+
+  return new Response(xml, {
+    status: 200,
+    headers: {
+      "content-type": "application/xml; charset=utf-8",
+    },
+  });
 }
 
-export default function render(request: Request, _bcd: CompatData): Response {
-  const url = new URL(request.url);
-  const baseUrl = `${url.protocol}//${url.host}`;
-  
-  const today = new Date().toISOString().split('T')[0];
-  
-  const urls: string[] = [];
+export async function handleCoreSitemap(ctx: RouteContext): Promise<Response> {
+  const pre = await ctx.store.getPrecomputed();
+  const lastmod = ctx.manifest.bcdTimestamp.slice(0, 10);
 
-  // Add base pages without query parameters
-  for (const page of PAGES) {
-    urls.push(`  <url>
-    <loc>${escapeXml(baseUrl + page.path)}</loc>
-    <lastmod>${today}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-  </url>`);
+  const entries: Array<{ loc: string; changefreq: string; priority: string }> = [
+    { loc: `${ctx.origin}/`, changefreq: "daily", priority: "1.0" },
+    { loc: `${ctx.origin}/stories`, changefreq: "daily", priority: "0.95" },
+    { loc: `${ctx.origin}/baseline`, changefreq: "daily", priority: "0.95" },
+    { loc: `${ctx.origin}/not-stable`, changefreq: "daily", priority: "0.9" },
+    { loc: `${ctx.origin}/when-stable`, changefreq: "daily", priority: "0.9" },
+    { loc: `${ctx.origin}/experimental`, changefreq: "weekly", priority: "0.7" },
+    { loc: `${ctx.origin}/deprecated`, changefreq: "weekly", priority: "0.7" },
+    { loc: `${ctx.origin}/removed`, changefreq: "weekly", priority: "0.7" },
+    { loc: `${ctx.origin}/all`, changefreq: "weekly", priority: "0.6" },
+    { loc: `${ctx.origin}/llms.txt`, changefreq: "daily", priority: "0.8" },
+  ];
+
+  for (const story of pre.stories) {
+    entries.push({
+      loc: `${ctx.origin}/stories/${story.slug}`,
+      changefreq: "daily",
+      priority: "0.9",
+    });
   }
 
-  // Add pages with browser and feature combinations
-  for (const page of PAGES) {
-    for (const browsers of BROWSER_COMBINATIONS) {
-      for (const features of FEATURE_COMBINATIONS) {
-        const queryString = generateQueryString(browsers, features);
-        const fullUrl = `${baseUrl}${page.path}?${queryString}`;
-        
-        urls.push(`  <url>
-    <loc>${escapeXml(fullUrl)}</loc>
-    <lastmod>${today}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>`);
-      }
+  for (const preset of BROWSER_PRESETS) {
+    entries.push({
+      loc: `${ctx.origin}/compare/${preset.slug}`,
+      changefreq: "daily",
+      priority: "0.85",
+    });
+    for (const cat of CATEGORIES) {
+      entries.push({
+        loc: `${ctx.origin}/compare/${preset.slug}/${cat}`,
+        changefreq: "weekly",
+        priority: "0.75",
+      });
     }
+    entries.push({
+      loc: `${ctx.origin}/compare/${preset.slug}/not-stable`,
+      changefreq: "daily",
+      priority: "0.8",
+    });
+    entries.push({
+      loc: `${ctx.origin}/compare/${preset.slug}/when-stable`,
+      changefreq: "daily",
+      priority: "0.8",
+    });
   }
 
-  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+  const urlsXml = entries
+    .map(
+      (e) => `  <url>
+    <loc>${escapeXml(e.loc)}</loc>
+    <lastmod>${escapeXml(lastmod)}</lastmod>
+    <changefreq>${e.changefreq}</changefreq>
+    <priority>${e.priority}</priority>
+  </url>`,
+    )
+    .join("\n");
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.join('\n')}
+${urlsXml}
 </urlset>`;
 
-  return new Response(sitemap, {
+  return new Response(xml, {
     status: 200,
-    headers: { 
+    headers: {
       "content-type": "application/xml; charset=utf-8",
-      "cache-control": "public, max-age=3600"
+    },
+  });
+}
+
+export async function handleFeaturesSitemap(
+  ctx: RouteContext,
+): Promise<Response> {
+  const webFeatures = await ctx.store.getWebFeatures();
+  const lastmod = ctx.manifest.bcdTimestamp.slice(0, 10);
+
+  const urlsXml = webFeatures
+    .map((wf) => {
+      const featureMod = wf.baselineLowDate
+        ? cleanIsoDate(wf.baselineLowDate)
+        : lastmod;
+      return `  <url>
+    <loc>${escapeXml(`${ctx.origin}/feature/${encodeURIComponent(wf.id)}`)}</loc>
+    <lastmod>${escapeXml(featureMod)}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>`;
+    })
+    .join("\n");
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urlsXml}
+</urlset>`;
+
+  return new Response(xml, {
+    status: 200,
+    headers: {
+      "content-type": "application/xml; charset=utf-8",
     },
   });
 }

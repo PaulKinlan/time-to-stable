@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "time-to-stable",
+  "main": "src/worker.ts",
+  "compatibility_date": "2025-06-17",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "html_handling": "none"
+  },
+  "r2_buckets": [
+    {
+      "binding": "DATA_BUCKET",
+      "bucket_name": "time-to-stable-data"
+    }
+  ],
+  "triggers": {
+    "crons": ["0 */6 * * *"]
+  },
+  "vars": {
+    "CANONICAL_HOST": "",
+    "REDIRECT_HOSTS": "time-to-stable.deno.dev,time-to-stable.paulkinlan-ea.deno.net",
+    "DATA_SOURCE_URL": ""
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "time-to-stable",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Measure how long web platform features take to become stable across browsers, powered by MDN Browser Compat Data and WebDX web-features on Cloudflare Workers.",
+  "scripts": {
+    "build:data": "node scripts/build-data.ts",
+    "publish:r2": "node scripts/publish-r2.ts",
+    "predev": "node -e \"import('fs').then(fs => { if (!fs.existsSync('public/data/manifest.json')) process.exit(1); }).catch(() => process.exit(1))\" || npm run build:data",
+    "dev": "wrangler dev",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.ts",
+    "deploy": "npm run build:data && wrangler deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250701.0",
+    "@mdn/browser-compat-data": "latest",
+    "typescript": "^5.8.3",
+    "web-features": "latest",
+    "wrangler": "^4.23.0"
+  }
+}

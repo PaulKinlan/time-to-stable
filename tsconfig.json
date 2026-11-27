@@ -1,10 +1,16 @@
 {
   "compilerOptions": {
-    "types": [
-      "./types/types.d.ts",
-      "https://esm.sh/@mdn/browser-compat-data@5.6.35/types.d.ts"
-    ],
-    "lib": ["dom", "esnext"],
-    "allowImportingTsExtensions": true
-  }
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "strict": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["@cloudflare/workers-types"]
+  },
+  "include": ["src/**/*.ts"]
 }
