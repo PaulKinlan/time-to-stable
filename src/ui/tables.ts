@@ -1,4 +1,5 @@
 import { buildSelectionParams, CATEGORIES, CATEGORY_LABELS } from "../analysis/query.ts";
+import { computeDistribution } from "../analysis/stats.ts";
 import {
   caveatLabel,
   epochDayToIso,
@@ -15,6 +16,7 @@ import type {
   CompactFeatureRowSnapshot,
   CrossTabResult,
   ParsedQuery,
+  SortField,
   ViewKind,
   YearlyCohortRow,
 } from "../types.ts";
@@ -53,12 +55,63 @@ export function renderBaselineBadge(baseline?: BaselineTier): string {
   return '<span class="badge badge-limited">Limited</span>';
 }
 
+export interface MatrixLinkConfig {
+  kind: "first-last" | "has-missing";
+  actionPath: string;
+  query: ParsedQuery;
+}
+
+interface DrillAnchorOpts {
+  first?: string;
+  last?: string;
+  has?: string;
+  missing?: string;
+  sort?: SortField;
+  dir?: "asc" | "desc";
+  clearBrowserFilter?: boolean;
+}
+
+function buildDrillHref(
+  actionPath: string,
+  query: ParsedQuery,
+  opts: DrillAnchorOpts,
+): string {
+  const qs = buildSelectionParams(query, {
+    q: query.search,
+    cat: query.filterCategory,
+    baseline: query.filterBaseline,
+    first: opts.first ?? "",
+    last: opts.last ?? "",
+    has: opts.has ?? "",
+    missing: opts.missing ?? "",
+    sort: opts.sort ?? query.sort,
+    dir: opts.dir ?? query.dir,
+  });
+  return `${actionPath}?${qs}#raw-explorer`;
+}
+
+function buildDrillDataAttrs(opts: DrillAnchorOpts): string {
+  return [
+    'data-drill-filter="1"',
+    `data-first="${escapeHtml(opts.first ?? "")}"`,
+    `data-last="${escapeHtml(opts.last ?? "")}"`,
+    `data-has="${escapeHtml(opts.has ?? "")}"`,
+    `data-missing="${escapeHtml(opts.missing ?? "")}"`,
+    `data-sort="${escapeHtml(opts.sort ?? "days")}"`,
+    `data-dir="${escapeHtml(opts.dir ?? "desc")}"`,
+    opts.clearBrowserFilter ? 'data-clear-browser-filter="1"' : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
 export function renderCrossTabMatrix(
   crossTab: CrossTabResult,
   browsers: readonly BrowserMeta[],
   caption: string,
   rowPrefix: string,
   colPrefix: string,
+  linkConfig?: MatrixLinkConfig,
 ): string {
   let maxVal = 1;
   for (const r of crossTab.browsers) {
@@ -75,29 +128,78 @@ export function renderCrossTabMatrix(
     )
     .join("");
 
+  const sortForKind = linkConfig?.kind === "has-missing" ? "limbo" : "days";
+
   const bodyRows = crossTab.browsers
     .map((rb) => {
       const cells = crossTab.browsers
         .map((cb) => {
           const val = crossTab.matrix[rb]?.[cb] ?? 0;
           const heat = val > 0 ? Math.max(0.08, val / maxVal) : 0;
-          return `<td class="num heat-cell" style="--heat:${heat.toFixed(2)}">${val.toLocaleString("en-US")}</td>`;
+          const med = crossTab.medianMatrix?.[rb]?.[cb];
+          const medHtml =
+            med !== null && med !== undefined
+              ? `<span class="cell-sub">med ${escapeHtml(formatDays(med))}</span>`
+              : "";
+
+          let cellInner = `${val.toLocaleString("en-US")}${medHtml}`;
+          if (linkConfig && val > 0) {
+            const opts: DrillAnchorOpts =
+              linkConfig.kind === "has-missing"
+                ? { has: rb, missing: cb, sort: sortForKind, dir: "desc" }
+                : { first: rb, last: cb, sort: sortForKind, dir: "desc" };
+            const isActive =
+              linkConfig.kind === "has-missing"
+                ? linkConfig.query.filterHas === rb &&
+                  linkConfig.query.filterMissing === cb
+                : linkConfig.query.filterFirst === rb &&
+                  linkConfig.query.filterLast === cb;
+            const href = buildDrillHref(linkConfig.actionPath, linkConfig.query, opts);
+            cellInner = `<a class="matrix-link${isActive ? " matrix-link-active" : ""}" href="${escapeHtml(href)}" ${buildDrillDataAttrs(opts)} title="View these ${val.toLocaleString("en-US")} features in the Feature Explorer">${val.toLocaleString("en-US")}${medHtml}</a>`;
+          }
+          return `<td class="num heat-cell" style="--heat:${heat.toFixed(2)}">${cellInner}</td>`;
         })
         .join("");
       const rowTotal = crossTab.rowTotals[rb] ?? 0;
+      let rowTotalHtml = `<strong>${rowTotal.toLocaleString("en-US")}</strong>`;
+      if (linkConfig && rowTotal > 0) {
+        const opts: DrillAnchorOpts =
+          linkConfig.kind === "has-missing"
+            ? { has: rb, sort: sortForKind, dir: "desc" }
+            : { first: rb, sort: sortForKind, dir: "desc" };
+        const isActive =
+          linkConfig.kind === "has-missing"
+            ? linkConfig.query.filterHas === rb && !linkConfig.query.filterMissing
+            : linkConfig.query.filterFirst === rb && !linkConfig.query.filterLast;
+        const href = buildDrillHref(linkConfig.actionPath, linkConfig.query, opts);
+        rowTotalHtml = `<a class="matrix-link${isActive ? " matrix-link-active" : ""}" href="${escapeHtml(href)}" ${buildDrillDataAttrs(opts)} title="View all ${rowTotal.toLocaleString("en-US")} features in the Feature Explorer"><strong>${rowTotal.toLocaleString("en-US")}</strong></a>`;
+      }
       return `<tr>
         <th scope="row">${escapeHtml(rowPrefix)} ${escapeHtml(browserShort(rb, browsers))}</th>
         ${cells}
-        <td class="num"><strong>${rowTotal.toLocaleString("en-US")}</strong></td>
+        <td class="num">${rowTotalHtml}</td>
       </tr>`;
     })
     .join("");
 
   const footCells = crossTab.browsers
-    .map(
-      (cb) =>
-        `<td class="num"><strong>${(crossTab.colTotals[cb] ?? 0).toLocaleString("en-US")}</strong></td>`,
-    )
+    .map((cb) => {
+      const colTotal = crossTab.colTotals[cb] ?? 0;
+      let colHtml = `<strong>${colTotal.toLocaleString("en-US")}</strong>`;
+      if (linkConfig && colTotal > 0) {
+        const opts: DrillAnchorOpts =
+          linkConfig.kind === "has-missing"
+            ? { missing: cb, sort: sortForKind, dir: "desc" }
+            : { last: cb, sort: sortForKind, dir: "desc" };
+        const isActive =
+          linkConfig.kind === "has-missing"
+            ? linkConfig.query.filterMissing === cb && !linkConfig.query.filterHas
+            : linkConfig.query.filterLast === cb && !linkConfig.query.filterFirst;
+        const href = buildDrillHref(linkConfig.actionPath, linkConfig.query, opts);
+        colHtml = `<a class="matrix-link${isActive ? " matrix-link-active" : ""}" href="${escapeHtml(href)}" ${buildDrillDataAttrs(opts)} title="View all ${colTotal.toLocaleString("en-US")} features in the Feature Explorer"><strong>${colTotal.toLocaleString("en-US")}</strong></a>`;
+      }
+      return `<td class="num">${colHtml}</td>`;
+    })
     .join("");
 
   return `<div class="table-wrap">
@@ -120,6 +222,69 @@ export function renderCrossTabMatrix(
     </tfoot>
   </table>
 </div>`;
+}
+
+export function renderDirectionalComparisonStrip(
+  crossTab: CrossTabResult,
+  browsers: readonly BrowserMeta[],
+  actionPath: string,
+  query: ParsedQuery,
+): string {
+  const pairs: Array<{
+    first: string;
+    last: string;
+    count: number;
+    med: number | null | undefined;
+    p90: number | null | undefined;
+  }> = [];
+
+  for (const rb of crossTab.browsers) {
+    for (const cb of crossTab.browsers) {
+      if (rb === cb) continue;
+      const count = crossTab.matrix[rb]?.[cb] ?? 0;
+      if (count <= 0) continue;
+      pairs.push({
+        first: rb,
+        last: cb,
+        count,
+        med: crossTab.medianMatrix?.[rb]?.[cb],
+        p90: crossTab.p90Matrix?.[rb]?.[cb],
+      });
+    }
+  }
+
+  if (pairs.length === 0) return "";
+  pairs.sort((a, b) => b.count - a.count);
+  const topPairs = pairs.slice(0, 6);
+
+  const cardsHtml = topPairs
+    .map((pair) => {
+      const opts: DrillAnchorOpts = {
+        first: pair.first,
+        last: pair.last,
+        sort: "days",
+        dir: "desc",
+      };
+      const isActive =
+        query.filterFirst === pair.first && query.filterLast === pair.last;
+      const href = buildDrillHref(actionPath, query, opts);
+      const metaParts = [`${pair.count.toLocaleString("en-US")} features`];
+      if (pair.med !== null && pair.med !== undefined) {
+        metaParts.push(`Median ${formatDays(pair.med)}`);
+      }
+      if (pair.p90 !== null && pair.p90 !== undefined) {
+        metaParts.push(`p90 ${formatDays(pair.p90)}`);
+      }
+
+      return `<a class="dir-card${isActive ? " dir-card-active" : ""}" href="${escapeHtml(href)}" ${buildDrillDataAttrs(opts)}>
+      <div class="dir-card-title">First in ${escapeHtml(browserShort(pair.first, browsers))} → Last in ${escapeHtml(browserShort(pair.last, browsers))}</div>
+      <div class="dir-card-meta">${escapeHtml(metaParts.join(" · "))}</div>
+      <div class="dir-card-cta">Inspect features ↓</div>
+    </a>`;
+    })
+    .join("");
+
+  return `<div class="dir-strip" role="region" aria-label="Directional browser comparisons">${cardsHtml}</div>`;
 }
 
 export function renderCategoryBreakdownTable(
@@ -182,7 +347,7 @@ export function renderYearlyCohortTable(
         <th class="num" scope="col">2y KM%</th>
         <th class="num" scope="col">Median TTA</th>
         <th class="num" scope="col">p90 TTA</th>
-        <th scope="col">Cohort Status</th>
+        <th scope="col"><span title="Mature cohorts have reached at least 80% completion across selected browsers; In progress (right-censored) cohorts are still below 80% completion.">Cohort Status</span></th>
       </tr>
     </thead>
     <tbody>
@@ -198,7 +363,7 @@ export function renderYearlyCohortTable(
         <td class="num">${escapeHtml(formatPct(y.km2yPct, false))}</td>
         <td class="num">${escapeHtml(formatDays(y.medianDays))}</td>
         <td class="num">${escapeHtml(formatDays(y.p90Days))}</td>
-        <td>${y.isRightCensored ? '<span class="badge badge-warn">Right-censored</span>' : '<span class="badge badge-high">Mature</span>'}</td>
+        <td>${y.isRightCensored ? '<span class="badge badge-warn" title="Fewer than 80% of this year&#39;s features have shipped in all selected browsers yet. Slower features are still waiting, so raw median days look artificially short.">In progress (right-censored)</span>' : '<span class="badge badge-high" title="At least 80% of this year&#39;s features have shipped across all selected browsers, so its median wait time is stable.">Mature (≥80%)</span>'}</td>
       </tr>`,
         )
         .join("")}
@@ -210,11 +375,12 @@ export function renderYearlyCohortTable(
 export function renderSprintersPloddersTables(
   share: readonly BrowserShareRow[],
   browsers: readonly BrowserMeta[],
+  linkConfig?: { actionPath: string; query: ParsedQuery },
 ): string {
   if (share.length === 0) return "";
   return `<div class="table-wrap">
   <table class="data-table">
-    <caption>Overall Sprinter (first to ship) vs. Plodder (last to ship) frequency and median wait time across stable features.</caption>
+    <caption>Overall Sprinter (first to ship) vs. Plodder (last to ship) frequency and median wait time across stable features. Click any count to inspect those features below.</caption>
     <thead>
       <tr>
         <th scope="col">Browser</th>
@@ -228,17 +394,33 @@ export function renderSprintersPloddersTables(
     </thead>
     <tbody>
       ${share
-        .map(
-          (r) => `<tr>
+        .map((r) => {
+          let firstCell = r.firstCount.toLocaleString("en-US");
+          let lastCell = r.lastCount.toLocaleString("en-US");
+          if (linkConfig && r.firstCount > 0) {
+            const opts: DrillAnchorOpts = { first: r.browser, sort: "days", dir: "desc" };
+            const isActive =
+              linkConfig.query.filterFirst === r.browser && !linkConfig.query.filterLast;
+            const href = buildDrillHref(linkConfig.actionPath, linkConfig.query, opts);
+            firstCell = `<a class="matrix-link${isActive ? " matrix-link-active" : ""}" href="${escapeHtml(href)}" ${buildDrillDataAttrs(opts)} title="Inspect features where ${escapeHtml(browserName(r.browser, browsers))} shipped first">${firstCell}</a>`;
+          }
+          if (linkConfig && r.lastCount > 0) {
+            const opts: DrillAnchorOpts = { last: r.browser, sort: "days", dir: "desc" };
+            const isActive =
+              linkConfig.query.filterLast === r.browser && !linkConfig.query.filterFirst;
+            const href = buildDrillHref(linkConfig.actionPath, linkConfig.query, opts);
+            lastCell = `<a class="matrix-link${isActive ? " matrix-link-active" : ""}" href="${escapeHtml(href)}" ${buildDrillDataAttrs(opts)} title="Inspect features where ${escapeHtml(browserName(r.browser, browsers))} shipped last">${lastCell}</a>`;
+          }
+          return `<tr>
         <th scope="row">${escapeHtml(browserName(r.browser, browsers))}</th>
-        <td class="num">${r.firstCount.toLocaleString("en-US")}</td>
+        <td class="num">${firstCell}</td>
         <td class="num">${r.firstPct}%</td>
         <td class="num">${escapeHtml(formatDays(r.firstMedianDays))}</td>
-        <td class="num">${r.lastCount.toLocaleString("en-US")}</td>
+        <td class="num">${lastCell}</td>
         <td class="num">${r.lastPct}%</td>
         <td class="num">${escapeHtml(formatDays(r.lastMedianDays))}</td>
-      </tr>`,
-        )
+      </tr>`;
+        })
         .join("")}
     </tbody>
   </table>
@@ -273,8 +455,118 @@ export interface ExplorerOptions {
   actionPath: string;
   query: ParsedQuery;
   rows: readonly CompactFeatureRowSnapshot[];
+  allFilteredRows?: readonly CompactFeatureRowSnapshot[];
   totalFilteredRows: number;
   browsers: readonly BrowserMeta[];
+}
+
+function renderActiveFilterSummaryHtml(
+  opts: ExplorerOptions,
+): { hasFilter: boolean; html: string } {
+  const { view, actionPath, query, allFilteredRows, totalFilteredRows, browsers } = opts;
+  const isNotStable = view === "not-stable";
+  const hasFilter = isNotStable
+    ? Boolean(query.filterHas || query.filterMissing)
+    : Boolean(query.filterFirst || query.filterLast);
+
+  if (!hasFilter) {
+    return { hasFilter: false, html: "" };
+  }
+
+  let label = "";
+  let swapOpts: DrillAnchorOpts | null = null;
+  let swapLabel = "";
+
+  if (isNotStable) {
+    if (query.filterHas && query.filterMissing) {
+      label = `In ${browserName(query.filterHas, browsers)} → Missing in ${browserName(query.filterMissing, browsers)}`;
+      if (query.filterHas !== query.filterMissing) {
+        swapOpts = {
+          has: query.filterMissing,
+          missing: query.filterHas,
+          sort: "limbo",
+          dir: "desc",
+        };
+        swapLabel = `Compare reverse (${browserShort(query.filterMissing, browsers)} → missing ${browserShort(query.filterHas, browsers)})`;
+      }
+    } else if (query.filterHas) {
+      label = `Already in ${browserName(query.filterHas, browsers)}`;
+    } else if (query.filterMissing) {
+      label = `Missing in ${browserName(query.filterMissing, browsers)}`;
+    }
+  } else {
+    if (query.filterFirst && query.filterLast) {
+      label = `First in ${browserName(query.filterFirst, browsers)} → Last in ${browserName(query.filterLast, browsers)}`;
+      if (query.filterFirst !== query.filterLast) {
+        swapOpts = {
+          first: query.filterLast,
+          last: query.filterFirst,
+          sort: "days",
+          dir: "desc",
+        };
+        swapLabel = `Compare reverse (${browserShort(query.filterLast, browsers)} → ${browserShort(query.filterFirst, browsers)})`;
+      }
+    } else if (query.filterFirst) {
+      label = `First in ${browserName(query.filterFirst, browsers)}`;
+      if (query.browsers.length === 2) {
+        const other = query.browsers.find((b) => b !== query.filterFirst);
+        if (other) {
+          swapOpts = {
+            first: other,
+            last: query.filterFirst,
+            sort: "days",
+            dir: "desc",
+          };
+          swapLabel = `Compare reverse (${browserShort(other, browsers)} → ${browserShort(query.filterFirst, browsers)})`;
+        }
+      }
+    } else if (query.filterLast) {
+      label = `Last in ${browserName(query.filterLast, browsers)}`;
+      if (query.browsers.length === 2) {
+        const other = query.browsers.find((b) => b !== query.filterLast);
+        if (other) {
+          swapOpts = {
+            first: query.filterLast,
+            last: other,
+            sort: "days",
+            dir: "desc",
+          };
+          swapLabel = `Compare reverse (${browserShort(query.filterLast, browsers)} → ${browserShort(other, browsers)})`;
+        }
+      }
+    }
+  }
+
+  const statsSource = allFilteredRows ?? [];
+  const metricValues = statsSource
+    .map((r) => (isNotStable ? r.limboDays : r.ageInDays))
+    .filter((v): v is number => v !== null);
+  const dist = computeDistribution(metricValues);
+
+  const statsParts = [`${totalFilteredRows.toLocaleString("en-US")} features`];
+  if (dist.count > 0) {
+    statsParts.push(`Median ${formatDays(dist.median)}`);
+    statsParts.push(`IQR ${formatDays(dist.iqr)}`);
+    statsParts.push(`p90 ${formatDays(dist.p90)}`);
+    statsParts.push(`Max ${formatDays(dist.max)}`);
+  }
+
+  const swapBtn = swapOpts
+    ? `<a class="btn" href="${escapeHtml(buildDrillHref(actionPath, query, swapOpts))}" ${buildDrillDataAttrs(swapOpts)}>⇄ ${escapeHtml(swapLabel)}</a>`
+    : "";
+
+  const clearOpts: DrillAnchorOpts = {
+    sort: query.sort,
+    dir: query.dir,
+    clearBrowserFilter: true,
+  };
+  const clearBtn = `<a class="btn" href="${escapeHtml(buildDrillHref(actionPath, query, clearOpts))}" ${buildDrillDataAttrs(clearOpts)}>Clear browser filter</a>`;
+
+  return {
+    hasFilter: true,
+    html: `<div class="active-filter-meta"><strong>${escapeHtml(label)}</strong> · ${escapeHtml(statsParts.join(" · "))}</div>
+    <div class="active-filter-actions">${swapBtn}${clearBtn}</div>`,
+  };
 }
 
 export function renderRawExplorerSection(opts: ExplorerOptions): string {
@@ -287,6 +579,10 @@ export function renderRawExplorerSection(opts: ExplorerOptions): string {
       q: query.search,
       cat: query.filterCategory,
       baseline: query.filterBaseline,
+      first: query.filterFirst,
+      last: query.filterLast,
+      has: query.filterHas,
+      missing: query.filterMissing,
       sort: query.sort,
       dir: query.dir,
       page: p,
@@ -326,6 +622,51 @@ export function renderRawExplorerSection(opts: ExplorerOptions): string {
     { value: "firstDate", label: "First Release Date" },
     { value: "lastDate", label: "Last Release Date" },
   ];
+
+  const browserRoleSelects =
+    view === "not-stable"
+      ? `<label class="sr-only" for="explorer-has">Shipped in browser</label>
+      <select id="explorer-has" name="has">
+        <option value="">In any selected browser</option>
+        ${query.browsers
+          .map(
+            (b) =>
+              `<option value="${escapeHtml(b)}"${query.filterHas === b ? " selected" : ""}>In ${escapeHtml(browserName(b, browsers))}</option>`,
+          )
+          .join("")}
+      </select>
+      <label class="sr-only" for="explorer-missing">Missing in browser</label>
+      <select id="explorer-missing" name="missing">
+        <option value="">Missing in any browser</option>
+        ${query.browsers
+          .map(
+            (b) =>
+              `<option value="${escapeHtml(b)}"${query.filterMissing === b ? " selected" : ""}>Missing in ${escapeHtml(browserName(b, browsers))}</option>`,
+          )
+          .join("")}
+      </select>`
+      : `<label class="sr-only" for="explorer-first">First browser to ship</label>
+      <select id="explorer-first" name="first">
+        <option value="">First in: Any</option>
+        ${query.browsers
+          .map(
+            (b) =>
+              `<option value="${escapeHtml(b)}"${query.filterFirst === b ? " selected" : ""}>First in ${escapeHtml(browserName(b, browsers))}</option>`,
+          )
+          .join("")}
+      </select>
+      <label class="sr-only" for="explorer-last">Last browser to ship</label>
+      <select id="explorer-last" name="last">
+        <option value="">Last in: Any</option>
+        ${query.browsers
+          .map(
+            (b) =>
+              `<option value="${escapeHtml(b)}"${query.filterLast === b ? " selected" : ""}>Last in ${escapeHtml(browserName(b, browsers))}</option>`,
+          )
+          .join("")}
+      </select>`;
+
+  const activeFilter = renderActiveFilterSummaryHtml(opts);
 
   const rowsHtml = rows.length
     ? rows
@@ -391,6 +732,7 @@ export function renderRawExplorerSection(opts: ExplorerOptions): string {
         <option value="low"${query.filterBaseline === "low" ? " selected" : ""}>Newly Available</option>
         <option value="limited"${query.filterBaseline === "limited" ? " selected" : ""}>Limited</option>
       </select>
+      ${browserRoleSelects}
       <label class="sr-only" for="explorer-sort">Sort by</label>
       <select id="explorer-sort" name="sort">
         ${sortOptions
@@ -408,6 +750,8 @@ export function renderRawExplorerSection(opts: ExplorerOptions): string {
       <button type="submit" class="btn">Filter</button>
     </form>
   </search>
+
+  <div id="explorer-active-filter" class="active-filter-bar"${activeFilter.hasFilter ? "" : " hidden"}>${activeFilter.html}</div>
 
   <div class="pagination" id="explorer-pagination-top">
     <span id="explorer-status">Showing page ${currentPage} of ${totalPages} (${totalFilteredRows.toLocaleString("en-US")} features)</span>

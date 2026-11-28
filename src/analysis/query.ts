@@ -359,6 +359,15 @@ export function parseQuery(
   const filterBaseline: "" | "high" | "low" | "limited" =
     blRaw === "high" || blRaw === "low" || blRaw === "limited" ? blRaw : "";
 
+  const firstRaw = (params.get("first") || "").trim();
+  const filterFirst = validBrowserSet.has(firstRaw) ? firstRaw : "";
+  const lastRaw = (params.get("last") || "").trim();
+  const filterLast = validBrowserSet.has(lastRaw) ? lastRaw : "";
+  const hasRaw = (params.get("has") || "").trim();
+  const filterHas = validBrowserSet.has(hasRaw) ? hasRaw : "";
+  const missingRaw = (params.get("missing") || "").trim();
+  const filterMissing = validBrowserSet.has(missingRaw) ? missingRaw : "";
+
   const sortRaw = params.get("sort") || "";
   const sort: SortField = VALID_SORT_SET.has(sortRaw)
     ? (sortRaw as SortField)
@@ -394,6 +403,10 @@ export function parseQuery(
     search,
     filterCategory,
     filterBaseline,
+    filterFirst,
+    filterLast,
+    filterHas,
+    filterMissing,
     sort,
     dir,
     page,
@@ -425,6 +438,10 @@ export function buildSelectionParams(
     q?: string;
     cat?: CategorySlug | "";
     baseline?: "" | "high" | "low" | "limited";
+    first?: string;
+    last?: string;
+    has?: string;
+    missing?: string;
   } = {},
 ): string {
   const sp = new URLSearchParams();
@@ -443,6 +460,10 @@ export function buildSelectionParams(
   if (overrides.q) sp.set("q", overrides.q);
   if (overrides.cat) sp.set("cat", overrides.cat);
   if (overrides.baseline) sp.set("baseline", overrides.baseline);
+  if (overrides.first) sp.set("first", overrides.first);
+  if (overrides.last) sp.set("last", overrides.last);
+  if (overrides.has) sp.set("has", overrides.has);
+  if (overrides.missing) sp.set("missing", overrides.missing);
   if (overrides.sort && overrides.sort !== "api") sp.set("sort", overrides.sort);
   if (overrides.dir && overrides.dir !== "asc") sp.set("dir", overrides.dir);
   if (overrides.page && overrides.page > 1) sp.set("page", String(overrides.page));

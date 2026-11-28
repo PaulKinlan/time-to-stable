@@ -1,12 +1,6 @@
 import { CATEGORY_LABELS, parseQuery } from "../analysis/query.ts";
-import { computeAnalysisSummary } from "../analysis/stats.ts";
+import { computeAnalysisSummary, computeDistribution } from "../analysis/stats.ts";
 import { toRowSnapshot } from "../analysis/support.ts";
-import { getHistorySnapshots } from "../data/history.ts";
-import {
-  handleAdminCheck,
-  handleAdminRefresh,
-  handleAdminSync,
-} from "../data/sync.ts";
 import { jsonResponse } from "../formats/json.ts";
 import {
   filterAndSortSnapshots,
@@ -20,28 +14,35 @@ export async function handleApiRoute(
   ctx: RouteContext,
   subPath: string,
 ): Promise<Response | null> {
-  if (subPath === "/api/admin/sync" && ctx.request.method === "POST") {
-    return handleAdminSync(ctx.request, ctx.env);
-  }
-  if (subPath === "/api/admin/refresh" && ctx.request.method === "POST") {
-    return handleAdminRefresh(ctx.request, ctx.env);
-  }
-  if (subPath === "/api/admin/check") {
-    return handleAdminCheck(ctx.request, ctx.env);
-  }
-
   if (subPath === "/api/meta") {
-    const history = await getHistorySnapshots(ctx.env);
+    const history = await ctx.store.getHistory();
+    const publicSyncStatus = ctx.syncStatus
+      ? {
+          checkedAt: ctx.syncStatus.checkedAt,
+          currentBcdVersion: ctx.syncStatus.currentBcdVersion,
+          currentWebFeaturesVersion: ctx.syncStatus.currentWebFeaturesVersion,
+          latestBcdVersion: ctx.syncStatus.latestBcdVersion,
+          latestWebFeaturesVersion: ctx.syncStatus.latestWebFeaturesVersion,
+          updateAvailable: ctx.syncStatus.updateAvailable,
+          ...(ctx.syncStatus.lastUpdatedAt
+            ? { lastUpdatedAt: ctx.syncStatus.lastUpdatedAt }
+            : {}),
+          ...(ctx.syncStatus.actionTriggered
+            ? { actionTriggered: ctx.syncStatus.actionTriggered }
+            : {}),
+          ...(ctx.syncStatus.error ? { hasError: true } : {}),
+        }
+      : null;
     return jsonResponse(
       {
         manifest: ctx.manifest,
         dataSource: ctx.dataSource,
-        syncStatus: ctx.syncStatus,
+        syncStatus: publicSyncStatus,
         browsers: ctx.browsers,
         history,
       },
       200,
-      { "cache-control": "no-store" },
+      { "cache-control": "public, max-age=30, s-maxage=60" },
     );
   }
 
@@ -186,11 +187,21 @@ export async function handleApiRoute(
           }))
         : matched.map(toRowSnapshot);
 
-    const { pagedRows, totalFiltered } = filterAndSortSnapshots(snapshots, query);
+    const { allFiltered, pagedRows, totalFiltered } = filterAndSortSnapshots(
+      snapshots,
+      query,
+    );
+
+    const metricVals = allFiltered
+      .map((r) => (view === "not-stable" ? r.limboDays : r.ageInDays))
+      .filter((v): v is number => v !== null);
+    const filteredStats = computeDistribution(metricVals);
 
     const browserShortNames: Record<string, string> = {};
+    const browserNames: Record<string, string> = {};
     for (const b of ctx.browsers) {
       browserShortNames[b.id] = b.shortName;
+      browserNames[b.id] = b.name;
     }
 
     return jsonResponse({
@@ -200,7 +211,15 @@ export async function handleApiRoute(
         view,
         mode: query.mode,
       },
+      filters: {
+        first: query.filterFirst,
+        last: query.filterLast,
+        has: query.filterHas,
+        missing: query.filterMissing,
+      },
+      filteredStats,
       browserShortNames,
+      browserNames,
       categoryLabels: CATEGORY_LABELS,
       pagination: {
         page: query.page,

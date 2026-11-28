@@ -22,6 +22,7 @@ Every HTML page supports clean Markdown and JSON representations:
 - [OpenAPI 3.1 Specification](${origin}/openapi.json): Machine-readable API schema
 - [Data Stories Hub](${origin}/stories): Seven empirical studies of web platform convergence
 - [Baseline Explorer](${origin}/baseline): W3C WebDX Baseline Widely/Newly/Limited breakdown (${manifest.webFeatureCount} features)
+- [About & Author](${origin}/about): Project background, statistical methodology, architecture, and creator Paul Kinlan
 
 ## Clean Comparison URLs
 - \`${origin}/compare/chrome-vs-safari\`
@@ -207,6 +208,10 @@ export function handleOpenApiJson(ctx: RouteContext): Response {
             { name: "q", in: "query", schema: { type: "string" } },
             { name: "cat", in: "query", schema: { type: "string" } },
             { name: "baseline", in: "query", schema: { type: "string", enum: ["high", "low", "limited"] } },
+            { name: "first", in: "query", description: "Filter by first browser to ship", schema: { type: "string" } },
+            { name: "last", in: "query", description: "Filter by last browser to ship", schema: { type: "string" } },
+            { name: "has", in: "query", description: "Filter not-stable features already shipped in browser", schema: { type: "string" } },
+            { name: "missing", in: "query", description: "Filter not-stable features missing from browser", schema: { type: "string" } },
             { name: "sort", in: "query", schema: { type: "string", enum: ["api", "days", "limbo", "firstDate", "lastDate"] } },
             { name: "dir", in: "query", schema: { type: "string", enum: ["asc", "desc"] } },
             { name: "page", in: "query", schema: { type: "integer", default: 1 } },

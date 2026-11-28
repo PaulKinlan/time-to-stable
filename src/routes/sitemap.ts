@@ -12,6 +12,7 @@ Allow: /feature/
 Allow: /baseline
 Allow: /not-stable
 Allow: /when-stable
+Allow: /about
 Allow: /llms.txt
 Allow: /llms-full.txt
 Allow: /openapi.json
@@ -20,6 +21,10 @@ Disallow: /api/admin/
 Disallow: /*?*page=
 Disallow: /*?*q=
 Disallow: /*?*sort=
+Disallow: /*?*first=
+Disallow: /*?*last=
+Disallow: /*?*has=
+Disallow: /*?*missing=
 
 Sitemap: ${ctx.origin}/sitemap.xml
 `;
@@ -68,6 +73,7 @@ export async function handleCoreSitemap(ctx: RouteContext): Promise<Response> {
     { loc: `${ctx.origin}/deprecated`, changefreq: "weekly", priority: "0.7" },
     { loc: `${ctx.origin}/removed`, changefreq: "weekly", priority: "0.7" },
     { loc: `${ctx.origin}/all`, changefreq: "weekly", priority: "0.6" },
+    { loc: `${ctx.origin}/about`, changefreq: "monthly", priority: "0.75" },
     { loc: `${ctx.origin}/llms.txt`, changefreq: "daily", priority: "0.8" },
   ];
 

@@ -217,6 +217,7 @@ export async function handleWhenStableRoute(
       actionPath,
       query,
       rows: pagedRows,
+      allFilteredRows: allRows,
       totalFilteredRows: totalFiltered,
       browsers: ctx.browsers,
     });

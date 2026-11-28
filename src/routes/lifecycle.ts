@@ -173,9 +173,10 @@ export async function handleLifecycleRoute(
       ])}<h2>Deprecated First-In vs. Last-In Matrix (Still Supported Everywhere)</h2>${renderCrossTabMatrix(
         cross,
         ctx.browsers,
-        "Deprecated APIs currently still supported across all selected browsers.",
+        "Deprecated APIs currently still supported across all selected browsers. Click any count to inspect below.",
         "First in",
         "Last in",
+        { kind: "first-last", actionPath: meta.path, query },
       )}`;
     } else if (view === "removed") {
       const remDist = computeDistribution(
@@ -186,6 +187,7 @@ export async function handleLifecycleRoute(
         isStable: true,
         first: e.removed!.first,
         last: e.removed!.last,
+        ageInDays: e.removed!.ageInDays,
       }));
       const remCross = computeCrossTab(removedAsStable, query.browsers);
       extraHtml = `${renderKpiGrid([
@@ -195,9 +197,10 @@ export async function handleLifecycleRoute(
       ])}<h2>First Removed vs. Last Removed Matrix</h2>${renderCrossTabMatrix(
         remCross,
         ctx.browsers,
-        "Count of APIs removed in Browser A first and Browser B last.",
+        "Count of APIs removed in Browser A first and Browser B last. Click any count to inspect below.",
         "First removed from",
         "Last removed from",
+        { kind: "first-last", actionPath: meta.path, query },
       )}`;
     } else {
       extraHtml = renderKpiGrid([
@@ -223,6 +226,7 @@ export async function handleLifecycleRoute(
       actionPath: meta.path,
       query,
       rows: pagedRows,
+      allFilteredRows: allFiltered,
       totalFilteredRows: totalFiltered,
       browsers: ctx.browsers,
     });

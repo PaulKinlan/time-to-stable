@@ -18,8 +18,8 @@
     "crons": ["0 */6 * * *"]
   },
   "vars": {
-    "CANONICAL_HOST": "",
-    "REDIRECT_HOSTS": "time-to-stable.deno.dev,time-to-stable.paulkinlan-ea.deno.net",
+    "CANONICAL_HOST": "timetostable.com",
+    "REDIRECT_HOSTS": "time-to-stable.deno.dev,time-to-stable.paulkinlan-ea.deno.net,time-to-stable.kinlan-test.workers.dev,www.timetostable.com",
     "DATA_SOURCE_URL": ""
   }
 }

@@ -1,4 +1,5 @@
 import { CATEGORIES } from "../analysis/query.ts";
+import { getHistorySnapshots } from "./history.ts";
 import type {
   BrowserMeta,
   CategorySlug,
@@ -6,6 +7,7 @@ import type {
   CompactWebFeature,
   Env,
   FeatureLookupResult,
+  HistorySnapshot,
   Manifest,
   PrecomputedData,
   SyncStatus,
@@ -108,7 +110,7 @@ export class DataStore {
       value,
       source,
       versionTag,
-      expiresAt: now + MANIFEST_TTL_MS,
+      expiresAt: now + MEMORY_TTL_MS,
     });
     return value;
   }
@@ -151,7 +153,12 @@ export class DataStore {
   }
 
   async lookupFeature(id: string): Promise<FeatureLookupResult | null> {
-    const cleanId = decodeURIComponent(id).trim();
+    let cleanId = "";
+    try {
+      cleanId = decodeURIComponent(id).trim();
+    } catch {
+      return null;
+    }
     if (!cleanId) return null;
 
     const webFeatures = await this.getWebFeatures();
@@ -216,13 +223,49 @@ export class DataStore {
   }
 
   async getSyncStatus(): Promise<SyncStatus | null> {
-    if (!this.env.DATA_BUCKET) return null;
-    try {
-      const obj = await this.env.DATA_BUCKET.get("sync-status.json");
-      if (!obj) return null;
-      return (await obj.json()) as SyncStatus;
-    } catch {
-      return null;
+    const cacheKey = `${this.namespace}:sync-status`;
+    const now = Date.now();
+    const cached = isolateCache.get(cacheKey);
+    if (cached && cached.expiresAt > now) {
+      return cached.value as SyncStatus | null;
     }
+
+    let status: SyncStatus | null = null;
+    if (this.env.DATA_BUCKET) {
+      try {
+        const obj = await this.env.DATA_BUCKET.get("sync-status.json");
+        if (obj) {
+          status = (await obj.json()) as SyncStatus;
+        }
+      } catch {
+        status = null;
+      }
+    }
+
+    isolateCache.set(cacheKey, {
+      value: status,
+      source: this.env.DATA_BUCKET ? "r2" : "bundled",
+      versionTag: "sync-status",
+      expiresAt: now + MANIFEST_TTL_MS,
+    });
+    return status;
+  }
+
+  async getHistory(): Promise<HistorySnapshot[]> {
+    const cacheKey = `${this.namespace}:history`;
+    const now = Date.now();
+    const cached = isolateCache.get(cacheKey);
+    if (cached && cached.expiresAt > now) {
+      return cached.value as HistorySnapshot[];
+    }
+
+    const history = await getHistorySnapshots(this.env);
+    isolateCache.set(cacheKey, {
+      value: history,
+      source: this.env.DATA_BUCKET ? "r2" : "bundled",
+      versionTag: "history",
+      expiresAt: now + MANIFEST_TTL_MS,
+    });
+    return history;
   }
 }

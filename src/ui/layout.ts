@@ -18,6 +18,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { path: "/deprecated", label: "Deprecated", preserveSelection: true },
   { path: "/removed", label: "Removed", preserveSelection: true },
   { path: "/all", label: "All APIs", preserveSelection: true },
+  { path: "/about", label: "About", preserveSelection: false },
 ];
 
 export interface PageLayoutOptions {
@@ -187,6 +188,7 @@ export function renderPageLayout(opts: PageLayoutOptions): string {
       <div class="footer-links">
         <a href="/stories">Data Stories</a>
         <a href="/baseline">Baseline Explorer</a>
+        <a href="/about">About</a>
         <a href="/llms.txt">llms.txt</a>
         <a href="/llms-full.txt">llms-full.txt</a>
         <a href="/openapi.json">OpenAPI 3.1</a>

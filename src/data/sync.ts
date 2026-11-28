@@ -25,21 +25,31 @@ async function fetchNpmVersion(url: string): Promise<string> {
   return json.version;
 }
 
-function constantTimeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
+async function constantTimeHashEqual(a: string, b: string): Promise<boolean> {
+  const enc = new TextEncoder();
+  const [ha, hb] = await Promise.all([
+    crypto.subtle.digest("SHA-256", enc.encode(a)),
+    crypto.subtle.digest("SHA-256", enc.encode(b)),
+  ]);
+  const va = new Uint8Array(ha);
+  const vb = new Uint8Array(hb);
   let diff = 0;
-  for (let i = 0; i < a.length; i++) {
-    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  for (let i = 0; i < va.length; i++) {
+    diff |= va[i] ^ vb[i];
   }
   return diff === 0;
 }
 
-export function isAuthorizedAdminRequest(request: Request, env: Env): boolean {
+export async function isAuthorizedAdminRequest(
+  request: Request,
+  env: Env,
+): Promise<boolean> {
   if (!env.SYNC_SECRET) return false;
   const auth = request.headers.get("authorization") || "";
   if (!auth.startsWith("Bearer ")) return false;
   const token = auth.slice("Bearer ".length).trim();
-  return constantTimeEqual(token, env.SYNC_SECRET);
+  if (!token) return false;
+  return constantTimeHashEqual(token, env.SYNC_SECRET);
 }
 
 async function fetchFirstOk(
@@ -297,20 +307,25 @@ export async function runScheduledCheck(
   }
 }
 
+const ADMIN_JSON_HEADERS = {
+  "content-type": "application/json; charset=utf-8",
+  "cache-control": "no-store",
+};
+
 export async function handleAdminSync(
   request: Request,
   env: Env,
 ): Promise<Response> {
-  if (!isAuthorizedAdminRequest(request, env)) {
+  if (!(await isAuthorizedAdminRequest(request, env))) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
-      headers: { "content-type": "application/json; charset=utf-8" },
+      headers: ADMIN_JSON_HEADERS,
     });
   }
   if (!env.DATA_BUCKET) {
     return new Response(
       JSON.stringify({ error: "DATA_BUCKET binding is not configured" }),
-      { status: 500, headers: { "content-type": "application/json; charset=utf-8" } },
+      { status: 500, headers: ADMIN_JSON_HEADERS },
     );
   }
 
@@ -338,14 +353,14 @@ export async function handleAdminSync(
         committed: manifest.bcdVersion,
         webFeaturesVersion: manifest.webFeaturesVersion,
       }),
-      { status: 200, headers: { "content-type": "application/json; charset=utf-8" } },
+      { status: 200, headers: ADMIN_JSON_HEADERS },
     );
   }
 
   if (!key || !/^[a-z0-9._-]+\.json$/i.test(key)) {
     return new Response(
       JSON.stringify({ error: "Invalid or missing shard key parameter" }),
-      { status: 400, headers: { "content-type": "application/json; charset=utf-8" } },
+      { status: 400, headers: ADMIN_JSON_HEADERS },
     );
   }
 
@@ -356,7 +371,7 @@ export async function handleAdminSync(
 
   return new Response(
     JSON.stringify({ ok: true, key: `current/${key}`, bytes: body.length }),
-    { status: 200, headers: { "content-type": "application/json; charset=utf-8" } },
+    { status: 200, headers: ADMIN_JSON_HEADERS },
   );
 }
 
@@ -364,16 +379,16 @@ export async function handleAdminCheck(
   request: Request,
   env: Env,
 ): Promise<Response> {
-  if (!isAuthorizedAdminRequest(request, env)) {
+  if (!(await isAuthorizedAdminRequest(request, env))) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
-      headers: { "content-type": "application/json; charset=utf-8" },
+      headers: ADMIN_JSON_HEADERS,
     });
   }
   const status = await runScheduledCheck(env);
   return new Response(JSON.stringify(status, null, 2), {
     status: status.error ? 500 : 200,
-    headers: { "content-type": "application/json; charset=utf-8" },
+    headers: ADMIN_JSON_HEADERS,
   });
 }
 
@@ -381,10 +396,10 @@ export async function handleAdminRefresh(
   request: Request,
   env: Env,
 ): Promise<Response> {
-  if (!isAuthorizedAdminRequest(request, env)) {
+  if (!(await isAuthorizedAdminRequest(request, env))) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
-      headers: { "content-type": "application/json; charset=utf-8" },
+      headers: ADMIN_JSON_HEADERS,
     });
   }
   const url = new URL(request.url);
@@ -392,6 +407,6 @@ export async function handleAdminRefresh(
   const status = await runScheduledCheck(env, { force });
   return new Response(JSON.stringify(status, null, 2), {
     status: status.error ? 500 : 200,
-    headers: { "content-type": "application/json; charset=utf-8" },
+    headers: ADMIN_JSON_HEADERS,
   });
 }

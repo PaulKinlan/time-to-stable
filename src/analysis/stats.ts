@@ -122,11 +122,52 @@ function emptyMatrix(browsers: readonly string[]): Record<string, Record<string,
   return matrix;
 }
 
+function emptyCellValueMatrix(
+  browsers: readonly string[],
+): Record<string, Record<string, number[]>> {
+  const cellValues: Record<string, Record<string, number[]>> = {};
+  for (const row of browsers) {
+    cellValues[row] = {};
+    for (const col of browsers) {
+      cellValues[row][col] = [];
+    }
+  }
+  return cellValues;
+}
+
+function summarizeCellMatrices(
+  browsers: readonly string[],
+  cellValues: Record<string, Record<string, number[]>>,
+): {
+  medianMatrix: Record<string, Record<string, number | null>>;
+  p90Matrix: Record<string, Record<string, number | null>>;
+} {
+  const medianMatrix: Record<string, Record<string, number | null>> = {};
+  const p90Matrix: Record<string, Record<string, number | null>> = {};
+  for (const row of browsers) {
+    medianMatrix[row] = {};
+    p90Matrix[row] = {};
+    for (const col of browsers) {
+      const vals = cellValues[row]?.[col];
+      if (!vals || vals.length === 0) {
+        medianMatrix[row][col] = null;
+        p90Matrix[row][col] = null;
+      } else {
+        const sorted = [...vals].sort((a, b) => a - b);
+        medianMatrix[row][col] = quantile(sorted, 0.5);
+        p90Matrix[row][col] = quantile(sorted, 0.9);
+      }
+    }
+  }
+  return { medianMatrix, p90Matrix };
+}
+
 export function computeCrossTab(
   evaluations: readonly FeatureEvaluation[],
   selectedBrowsers: readonly string[],
 ): CrossTabResult {
   const matrix = emptyMatrix(selectedBrowsers);
+  const cellValues = emptyCellValueMatrix(selectedBrowsers);
   const rowTotals: Record<string, number> = {};
   const colTotals: Record<string, number> = {};
   for (const b of selectedBrowsers) {
@@ -141,14 +182,24 @@ export function computeCrossTab(
     const l = ev.last.browser;
     if (!(f in matrix) || !(l in matrix[f])) continue;
     matrix[f][l]++;
+    if (ev.ageInDays !== null) {
+      cellValues[f][l].push(ev.ageInDays);
+    }
     rowTotals[f]++;
     colTotals[l]++;
     total++;
   }
 
+  const { medianMatrix, p90Matrix } = summarizeCellMatrices(
+    selectedBrowsers,
+    cellValues,
+  );
+
   return {
     browsers: [...selectedBrowsers],
     matrix,
+    medianMatrix,
+    p90Matrix,
     rowTotals,
     colTotals,
     total,
@@ -160,6 +211,7 @@ export function computeMissingCrossTab(
   selectedBrowsers: readonly string[],
 ): CrossTabResult {
   const matrix = emptyMatrix(selectedBrowsers);
+  const cellValues = emptyCellValueMatrix(selectedBrowsers);
   const rowTotals: Record<string, number> = {};
   const colTotals: Record<string, number> = {};
   for (const b of selectedBrowsers) {
@@ -180,14 +232,24 @@ export function computeMissingCrossTab(
       for (const bIn of present) {
         if (bIn in matrix && bMiss in matrix[bIn]) {
           matrix[bIn][bMiss]++;
+          if (ev.limboDays !== null) {
+            cellValues[bIn][bMiss].push(ev.limboDays);
+          }
         }
       }
     }
   }
 
+  const { medianMatrix, p90Matrix } = summarizeCellMatrices(
+    selectedBrowsers,
+    cellValues,
+  );
+
   return {
     browsers: [...selectedBrowsers],
     matrix,
+    medianMatrix,
+    p90Matrix,
     rowTotals,
     colTotals,
     total,

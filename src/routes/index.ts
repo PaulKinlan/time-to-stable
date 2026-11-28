@@ -11,6 +11,7 @@ import { renderPageLayout } from "../ui/layout.ts";
 import {
   renderCategoryBreakdownTable,
   renderCrossTabMatrix,
+  renderDirectionalComparisonStrip,
   renderKpiGrid,
   renderRawExplorerSection,
   renderSprintersPloddersTables,
@@ -123,9 +124,17 @@ export async function handleIndexRoute(
     const crossTabHtml = renderCrossTabMatrix(
       summary.crossTab,
       ctx.browsers,
-      `Count of stable features that landed in Browser A first (rows) and Browser B last (columns) across ${browserList}.`,
+      `Count of stable features that landed in Browser A first (rows) and Browser B last (columns) across ${browserList}. Click any count to inspect those features below.`,
       "First in",
       "Last in",
+      { kind: "first-last", actionPath, query },
+    );
+
+    const dirStripHtml = renderDirectionalComparisonStrip(
+      summary.crossTab,
+      ctx.browsers,
+      actionPath,
+      query,
     );
 
     const chartsHtml = `<div class="chart-grid">
@@ -140,23 +149,33 @@ export async function handleIndexRoute(
     const yearlyHtml = `<h2>Yearly First-Landing Cohorts</h2>
       <div class="callout callout-warn">
         <strong>Statistical Note:</strong> Raw yearly medians suffer from <em>right-censoring</em> in recent years because slower features have not yet finished landing everywhere. Compare the <strong>1y KM%</strong> and <strong>2y KM%</strong> columns for an unbiased pace across cohorts.
+        <details class="glossary-details">
+          <summary>What do “Cohort Status” and “Right-censored” mean?</summary>
+          <ul>
+            <li><strong>Cohort</strong>: Every feature that first shipped in <em>any</em> of your selected browsers during that calendar year.</li>
+            <li><strong>In progress (right-censored, &lt;80%)</strong>: Fewer than 80% of that year&rsquo;s features have shipped in all selected browsers yet. Because quick features finish within months while harder ones are still waiting in progress, the observed median only reflects the fast finishers and looks artificially low.</li>
+            <li><strong>Mature (≥80%)</strong>: At least 80% of the cohort has finished converging across all selected browsers, so its median wait time is stable.</li>
+            <li><strong>1y KM% / 2y KM%</strong>: Kaplan–Meier survival estimates that include still-waiting features as censored observations, letting you fairly compare 2025–2026 against older years.</li>
+          </ul>
+        </details>
       </div>
       ${renderYearlyCohortTable(summary.yearlyCohorts)}`;
 
     const sprintersHtml = `<h2>The Tortoise and the Hare: Sprinters vs. Plodders</h2>
       <p>Every browser engine sets different priorities, creating <a href="https://paul.kinlan.me/the-lumpy-web/">a lumpy web platform</a>. Below is how often each browser led vs. trailed across stable features.</p>
-      ${renderSprintersPloddersTables(summary.browserShare, ctx.browsers)}`;
+      ${renderSprintersPloddersTables(summary.browserShare, ctx.browsers, { actionPath, query })}`;
 
     const explorerHtml = renderRawExplorerSection({
       view: "stable",
       actionPath,
       query,
       rows: pagedRows,
+      allFilteredRows: allRows,
       totalFilteredRows: totalFiltered,
       browsers: ctx.browsers,
     });
 
-    bodyHtml = `${spotlight}${kpis}<h2>First-In vs. Last-In Matrix</h2>${crossTabHtml}${chartsHtml}${categoryHtml}${yearlyHtml}${sprintersHtml}${explorerHtml}`;
+    bodyHtml = `${spotlight}${kpis}<h2>First-In vs. Last-In Matrix</h2>${crossTabHtml}${dirStripHtml}${chartsHtml}${categoryHtml}${yearlyHtml}${sprintersHtml}${explorerHtml}`;
   }
 
   const controls = renderControls({

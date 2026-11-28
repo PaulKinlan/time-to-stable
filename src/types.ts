@@ -133,6 +133,10 @@ export interface ParsedQuery {
   search: string;
   filterCategory: CategorySlug | "";
   filterBaseline: "" | "high" | "low" | "limited";
+  filterFirst: string;
+  filterLast: string;
+  filterHas: string;
+  filterMissing: string;
   sort: SortField;
   dir: SortDirection;
   page: number;
@@ -244,6 +248,8 @@ export interface DistributionStats {
 export interface CrossTabResult {
   browsers: string[];
   matrix: Record<string, Record<string, number>>;
+  medianMatrix?: Record<string, Record<string, number | null>>;
+  p90Matrix?: Record<string, Record<string, number | null>>;
   rowTotals: Record<string, number>;
   colTotals: Record<string, number>;
   total: number;

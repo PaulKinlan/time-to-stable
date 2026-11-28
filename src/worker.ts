@@ -1,9 +1,16 @@
 import { negotiateFormat } from "./analysis/query.ts";
 import { DataStore } from "./data/store.ts";
-import { runScheduledCheck } from "./data/sync.ts";
+import {
+  handleAdminCheck,
+  handleAdminRefresh,
+  handleAdminSync,
+  isAuthorizedAdminRequest,
+  runScheduledCheck,
+} from "./data/sync.ts";
 import { escapeHtml, htmlResponse } from "./formats/html.ts";
 import { jsonResponse } from "./formats/json.ts";
 import { markdownResponse } from "./formats/markdown.ts";
+import { handleAboutRoute } from "./routes/about.ts";
 import {
   handleLlmsFullTxt,
   handleLlmsTxt,
@@ -28,6 +35,8 @@ import { handleWhenStableRoute } from "./routes/when-stable.ts";
 import { renderPageLayout } from "./ui/layout.ts";
 import type { Env } from "./types.ts";
 
+const RENDER_CACHE_REV = "v2";
+
 function buildEtag(
   versionKey: string,
   cacheKeyUrl: string,
@@ -41,6 +50,73 @@ function buildEtag(
     h = Math.imul(h, 0x01000193);
   }
   return `"${versionKey}-${(h >>> 0).toString(16)}"`;
+}
+
+function safeDecode(segment: string): string | null {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return null;
+  }
+}
+
+const ALLOWED_CACHE_PARAMS = new Set([
+  "browsers",
+  "categories",
+  "mode",
+  "exclude-partial",
+  "include-prefixed",
+  "include-flagged",
+  "since",
+  "q",
+  "cat",
+  "baseline",
+  "first",
+  "last",
+  "has",
+  "missing",
+  "sort",
+  "dir",
+  "page",
+  "pageSize",
+  "type",
+  "view",
+  "submitted",
+]);
+
+function buildNormalizedCacheUrl(
+  reqUrl: URL,
+  format: string,
+  versionKey: string,
+): string {
+  const norm = new URL(reqUrl.pathname, reqUrl.origin);
+  const kept: Array<[string, string]> = [];
+  for (const [k, v] of reqUrl.searchParams.entries()) {
+    if (
+      ALLOWED_CACHE_PARAMS.has(k) ||
+      k.startsWith("browser-") ||
+      k.startsWith("feature-")
+    ) {
+      kept.push([k, v]);
+    }
+  }
+  kept.sort((a, b) =>
+    a[0] === b[0]
+      ? a[1] < b[1]
+        ? -1
+        : a[1] > b[1]
+        ? 1
+        : 0
+      : a[0] < b[0]
+      ? -1
+      : 1,
+  );
+  for (const [k, v] of kept) {
+    norm.searchParams.append(k, v);
+  }
+  norm.searchParams.set("__fmt", format);
+  norm.searchParams.set("__ver", versionKey);
+  return norm.toString();
 }
 
 function getDefaultEdgeCache(): Cache | null {
@@ -93,7 +169,7 @@ async function routeRequest(
   timings: Array<[string, number]>;
 }> {
   const ctx = await createRouteContext(request, env);
-  const manifestKey = `${ctx.manifest.bcdVersion}-${ctx.manifest.webFeaturesVersion}-${ctx.dataSource}`;
+  const manifestKey = `${RENDER_CACHE_REV}-${ctx.manifest.bcdVersion}-${ctx.manifest.webFeaturesVersion}-${ctx.dataSource}`;
   const path = ctx.url.pathname;
   const format = negotiateFormat(request);
   const tRoute0 = performance.now();
@@ -131,19 +207,23 @@ async function routeRequest(
     response = await handleLifecycleRoute(ctx, "removed");
   } else if (path === "/all") {
     response = await handleLifecycleRoute(ctx, "all");
+  } else if (path === "/about") {
+    response = handleAboutRoute(ctx);
   } else if (path === "/stories") {
     response = await handleStoriesRoute(ctx);
   } else if (path.startsWith("/stories/")) {
-    const slug = decodeURIComponent(path.slice("/stories/".length));
-    response = await handleStoriesRoute(ctx, slug);
+    const slug = safeDecode(path.slice("/stories/".length));
+    if (slug !== null) {
+      response = await handleStoriesRoute(ctx, slug);
+    }
   } else if (path.startsWith("/compare/")) {
     const parts = path.slice("/compare/".length).split("/").filter(Boolean);
     if (parts.length >= 1 && parts.length <= 2) {
-      response = await handleCompareRoute(
-        ctx,
-        decodeURIComponent(parts[0]),
-        parts[1] ? decodeURIComponent(parts[1]) : undefined,
-      );
+      const first = safeDecode(parts[0]);
+      const second = parts[1] ? safeDecode(parts[1]) : undefined;
+      if (first !== null && second !== null) {
+        response = await handleCompareRoute(ctx, first, second);
+      }
     }
   } else if (path.startsWith("/feature/")) {
     const id = path.slice("/feature/".length);
@@ -192,21 +272,61 @@ export default {
       .map((s) => s.trim())
       .filter(Boolean);
 
-    if (
-      canonicalHost &&
+    const shouldRedirectHost =
+      Boolean(canonicalHost) &&
       redirectHosts.includes(reqUrl.hostname) &&
-      reqUrl.hostname !== canonicalHost
-    ) {
+      reqUrl.hostname !== canonicalHost;
+    const shouldUpgradeHttps =
+      Boolean(canonicalHost) &&
+      reqUrl.hostname === canonicalHost &&
+      reqUrl.protocol === "http:";
+
+    if (shouldRedirectHost || shouldUpgradeHttps) {
       reqUrl.protocol = "https:";
-      reqUrl.hostname = canonicalHost;
+      reqUrl.hostname = canonicalHost!;
       reqUrl.port = "";
-      return Response.redirect(reqUrl.toString(), 301);
+      const status =
+        request.method === "GET" || request.method === "HEAD" ? 301 : 308;
+      return Response.redirect(reqUrl.toString(), status);
+    }
+
+    if (reqUrl.pathname.startsWith("/api/admin/")) {
+      const adminHeaders = {
+        "content-type": "application/json; charset=utf-8",
+        "cache-control": "no-store",
+        "x-content-type-options": "nosniff",
+      };
+      const authorized = await isAuthorizedAdminRequest(request, env);
+      if (!authorized) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: adminHeaders,
+        });
+      }
+      if (request.method !== "POST") {
+        return new Response(JSON.stringify({ error: "Method not allowed" }), {
+          status: 405,
+          headers: { ...adminHeaders, allow: "POST" },
+        });
+      }
+      if (reqUrl.pathname === "/api/admin/sync") {
+        return handleAdminSync(request, env);
+      }
+      if (reqUrl.pathname === "/api/admin/refresh") {
+        return handleAdminRefresh(request, env);
+      }
+      if (reqUrl.pathname === "/api/admin/check") {
+        return handleAdminCheck(request, env);
+      }
+      return new Response(JSON.stringify({ error: "Not found" }), {
+        status: 404,
+        headers: adminHeaders,
+      });
     }
 
     const format = negotiateFormat(request);
     const edgeCache = getDefaultEdgeCache();
     const isGet = request.method === "GET";
-    const isAdmin = reqUrl.pathname.startsWith("/api/admin/");
 
     // Static assets shortcut before Worker data loading when clearly an asset extension
     if (
@@ -222,8 +342,7 @@ export default {
       }
     }
 
-    const isUncachedRoute =
-      isAdmin || reqUrl.pathname === "/api/meta";
+    const isUncachedRoute = reqUrl.pathname === "/api/meta";
     let versionKey = "";
 
     if (edgeCache && isGet && !isUncachedRoute) {
@@ -231,11 +350,9 @@ export default {
         const { manifest, source } = await new DataStore(
           env,
         ).getManifestWithSource();
-        versionKey = `${manifest.bcdVersion}-${manifest.webFeaturesVersion}-${source}`;
-        const cacheUrl = new URL(reqUrl.toString());
-        cacheUrl.searchParams.set("__fmt", format);
-        cacheUrl.searchParams.set("__ver", versionKey);
-        const cached = await edgeCache.match(new Request(cacheUrl.toString()));
+        versionKey = `${RENDER_CACHE_REV}-${manifest.bcdVersion}-${manifest.webFeaturesVersion}-${source}`;
+        const cacheKeyUrl = buildNormalizedCacheUrl(reqUrl, format, versionKey);
+        const cached = await edgeCache.match(new Request(cacheKeyUrl));
         if (cached) {
           const ifNoneMatch = request.headers.get("if-none-match");
           const cachedEtag = cached.headers.get("etag");
@@ -267,7 +384,12 @@ export default {
     headers.set("X-Content-Type-Options", "nosniff");
 
     if (cacheable && response.status === 200) {
-      const etag = buildEtag(manifestKey, reqUrl.toString(), format);
+      const normalizedKeyUrl = buildNormalizedCacheUrl(
+        reqUrl,
+        format,
+        versionKey || manifestKey,
+      );
+      const etag = buildEtag(manifestKey, normalizedKeyUrl, format);
       headers.set("ETag", etag);
       if (!headers.has("Cache-Control")) {
         headers.set(
@@ -288,11 +410,8 @@ export default {
       });
 
       if (edgeCache && !reqUrl.pathname.startsWith("/data/")) {
-        const cacheUrl = new URL(reqUrl.toString());
-        cacheUrl.searchParams.set("__fmt", format);
-        cacheUrl.searchParams.set("__ver", versionKey || manifestKey);
         ctx.waitUntil(
-          edgeCache.put(new Request(cacheUrl.toString()), finalResponse.clone()),
+          edgeCache.put(new Request(normalizedKeyUrl), finalResponse.clone()),
         );
       }
 

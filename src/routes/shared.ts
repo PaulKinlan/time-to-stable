@@ -109,6 +109,10 @@ export function canServeFastPresetRows(
     !query.search &&
     !query.filterCategory &&
     !query.filterBaseline &&
+    !query.filterFirst &&
+    !query.filterLast &&
+    !query.filterHas &&
+    !query.filterMissing &&
     query.sort === "api" &&
     query.dir === "asc" &&
     query.page === 1 &&
@@ -188,6 +192,20 @@ export function filterAndSortSnapshots(
       ) {
         return false;
       }
+    }
+    if (query.filterFirst && r.first?.browser !== query.filterFirst) return false;
+    if (query.filterLast && r.last?.browser !== query.filterLast) return false;
+    if (
+      query.filterHas &&
+      !r.browserTimeline.some((pt) => pt.browser === query.filterHas)
+    ) {
+      return false;
+    }
+    if (
+      query.filterMissing &&
+      !r.missingBrowsers.includes(query.filterMissing)
+    ) {
+      return false;
     }
     if (qLower) {
       const idMatch = r.id.toLowerCase().includes(qLower);
@@ -291,6 +309,10 @@ export function buildExportOrErrorResponse(opts: {
           includePrefixed: query.includePrefixed,
           includeFlagged: query.includeFlagged,
           sinceYear: query.sinceYear,
+          ...(query.filterFirst ? { first: query.filterFirst } : {}),
+          ...(query.filterLast ? { last: query.filterLast } : {}),
+          ...(query.filterHas ? { has: query.filterHas } : {}),
+          ...(query.filterMissing ? { missing: query.filterMissing } : {}),
           page: query.page,
           pageSize: query.pageSize,
         },

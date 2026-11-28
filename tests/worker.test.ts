@@ -91,7 +91,7 @@ function createTestEnv(overrides: Partial<Env> = {}): {
 }
 
 describe("Cloudflare Worker integration", () => {
-  it("redirects legacy hosts with 301 preserving path and query", async () => {
+  it("redirects legacy hosts and HTTP canonical hosts preserving path, query, and method", async () => {
     const { env, ctx } = createTestEnv();
     const res = await worker.fetch(
       new Request("https://time-to-stable.deno.dev/not-stable?browser-chrome=on&browser-safari=on"),
@@ -103,6 +103,37 @@ describe("Cloudflare Worker integration", () => {
       res.headers.get("location"),
       "https://time-to-stable.example.workers.dev/not-stable?browser-chrome=on&browser-safari=on",
     );
+
+    const httpCanonical = await worker.fetch(
+      new Request("http://time-to-stable.example.workers.dev/stories?foo=bar"),
+      env,
+      ctx,
+    );
+    assert.equal(httpCanonical.status, 301);
+    assert.equal(
+      httpCanonical.headers.get("location"),
+      "https://time-to-stable.example.workers.dev/stories?foo=bar",
+    );
+
+    const postRedirect = await worker.fetch(
+      new Request("https://time-to-stable.deno.dev/api/admin/refresh", {
+        method: "POST",
+      }),
+      env,
+      ctx,
+    );
+    assert.equal(postRedirect.status, 308);
+    assert.equal(
+      postRedirect.headers.get("location"),
+      "https://time-to-stable.example.workers.dev/api/admin/refresh",
+    );
+
+    const localDev = await worker.fetch(
+      new Request("http://localhost:8787/robots.txt"),
+      env,
+      ctx,
+    );
+    assert.equal(localDev.status, 200);
   });
 
   it("serves /, Markdown negotiation, ETag 304, and clean /compare/* routes", async () => {
@@ -221,6 +252,7 @@ describe("Cloudflare Worker integration", () => {
     const { env, ctx } = createTestEnv();
 
     for (const p of [
+      "/about",
       "/llms.txt",
       "/llms-full.txt",
       "/openapi.json",
@@ -244,12 +276,138 @@ describe("Cloudflare Worker integration", () => {
       assert.equal(res.status, 200, `Expected 200 for ${p}, got ${res.status}`);
     }
 
+    const aboutHtml = await (
+      await worker.fetch(new Request("https://time-to-stable.example.workers.dev/about"), env, ctx)
+    ).text();
+    assert.ok(aboutHtml.includes("Paul Kinlan"));
+    assert.ok(aboutHtml.includes("https://paul.kinlan.me/"));
+    assert.ok(aboutHtml.includes("https://aifoc.us/"));
+    assert.ok(aboutHtml.includes("https://bsky.app/profile/paul.kinlan.me"));
+    assert.ok(aboutHtml.includes('"@type":"AboutPage"'));
+
+    const aboutMdRes = await worker.fetch(
+      new Request("https://time-to-stable.example.workers.dev/about", {
+        headers: { accept: "text/markdown" },
+      }),
+      env,
+      ctx,
+    );
+    assert.equal(aboutMdRes.status, 200);
+    assert.ok(aboutMdRes.headers.get("content-type")?.includes("text/markdown"));
+    assert.ok((await aboutMdRes.text()).includes("# About Time to Stable"));
+
+    const aboutJson = (await (
+      await worker.fetch(
+        new Request("https://time-to-stable.example.workers.dev/about?type=json"),
+        env,
+        ctx,
+      )
+    ).json()) as { author: { name: string } };
+    assert.equal(aboutJson.author.name, "Paul Kinlan");
+
+    const coreSitemap = await (
+      await worker.fetch(new Request("https://time-to-stable.example.workers.dev/sitemaps/core.xml"), env, ctx)
+    ).text();
+    assert.ok(coreSitemap.includes("/about</loc>"));
+
+    const llmsTxt = await (
+      await worker.fetch(new Request("https://time-to-stable.example.workers.dev/llms.txt"), env, ctx)
+    ).text();
+    assert.ok(llmsTxt.includes("/about"));
+
     const notFound = await worker.fetch(
       new Request("https://time-to-stable.example.workers.dev/definitely-does-not-exist"),
       env,
       ctx,
     );
     assert.equal(notFound.status, 404);
+
+    const badUri = await worker.fetch(
+      new Request("https://time-to-stable.example.workers.dev/feature/%E0%A4%A"),
+      env,
+      ctx,
+    );
+    assert.equal(badUri.status, 404);
+
+    const badStoryUri = await worker.fetch(
+      new Request("https://time-to-stable.example.workers.dev/stories/%E0%A4%A"),
+      env,
+      ctx,
+    );
+    assert.equal(badStoryUri.status, 404);
+  });
+
+  it("supports clickable bidirectional drill-down and /not-stable missing filters", async () => {
+    invalidateDataCache();
+    const { env, ctx } = createTestEnv();
+
+    const ssrDir = await worker.fetch(
+      new Request(
+        "https://time-to-stable.example.workers.dev/?submitted=1&browser-chrome=on&browser-safari=on&feature-css=on&first=safari&last=chrome&sort=days&dir=desc",
+      ),
+      env,
+      ctx,
+    );
+    assert.equal(ssrDir.status, 200);
+    const ssrHtml = await ssrDir.text();
+    assert.ok(ssrHtml.includes("matrix-link"), "Expected clickable matrix links");
+    assert.ok(ssrHtml.includes("dir-strip"), "Expected bidirectional comparison cards");
+    assert.ok(ssrHtml.includes("explorer-active-filter"), "Expected active filter bar");
+    assert.ok(ssrHtml.includes("Compare reverse"), "Expected swap direction button");
+
+    const apiDir = await worker.fetch(
+      new Request(
+        "https://time-to-stable.example.workers.dev/api/features?browsers=chrome,safari&categories=css&first=safari&last=chrome&sort=days&dir=desc",
+      ),
+      env,
+      ctx,
+    );
+    assert.equal(apiDir.status, 200);
+    const dirJson = (await apiDir.json()) as {
+      filteredStats: { count: number; median: number | null };
+      pagination: { total: number };
+      rows: Array<{ first: { browser: string }; last: { browser: string } }>;
+    };
+    assert.equal(dirJson.filteredStats.count, dirJson.pagination.total);
+    assert.ok(dirJson.rows.length > 0);
+    for (const row of dirJson.rows) {
+      assert.equal(row.first.browser, "safari");
+      assert.equal(row.last.browser, "chrome");
+    }
+
+    const nsHtmlRes = await worker.fetch(
+      new Request(
+        "https://time-to-stable.example.workers.dev/not-stable?submitted=1&browser-chrome=on&browser-safari=on&feature-css=on&has=safari&missing=chrome",
+      ),
+      env,
+      ctx,
+    );
+    assert.equal(nsHtmlRes.status, 200);
+
+    const nsApiRes = await worker.fetch(
+      new Request(
+        "https://time-to-stable.example.workers.dev/api/features?view=not-stable&browsers=chrome,safari&categories=css&has=safari&missing=chrome",
+      ),
+      env,
+      ctx,
+    );
+    assert.equal(nsApiRes.status, 200);
+    const nsJson = (await nsApiRes.json()) as {
+      rows: Array<{
+        browserTimeline: Array<{ browser: string }>;
+        missingBrowsers: string[];
+      }>;
+    };
+    for (const row of nsJson.rows) {
+      assert.ok(
+        row.browserTimeline.some((pt) => pt.browser === "safari"),
+        "Expected safari in browserTimeline",
+      );
+      assert.ok(
+        row.missingBrowsers.includes("chrome"),
+        "Expected chrome in missingBrowsers",
+      );
+    }
   });
 
   it("enforces auth on /api/admin/sync and runs scheduled npm checks into R2", async () => {
@@ -302,6 +460,66 @@ describe("Cloudflare Worker integration", () => {
     } finally {
       globalThis.fetch = origFetch;
     }
+  });
+
+  it("enforces early auth and method checks on /api/admin/* without R2 reads and sanitizes /api/meta", async () => {
+    invalidateDataCache();
+    const { env, r2, ctx } = createTestEnv();
+
+    let r2GetCount = 0;
+    const origGet = r2.get.bind(r2);
+    r2.get = (async (key: string) => {
+      r2GetCount++;
+      return origGet(key);
+    }) as typeof r2.get;
+
+    const unauth = await worker.fetch(
+      new Request("https://time-to-stable.example.workers.dev/api/admin/refresh", {
+        method: "POST",
+      }),
+      env,
+      ctx,
+    );
+    assert.equal(unauth.status, 401);
+    assert.equal(unauth.headers.get("cache-control"), "no-store");
+    assert.equal(r2GetCount, 0, "Unauthenticated /api/admin/* must not hit R2");
+
+    const wrongMethod = await worker.fetch(
+      new Request("https://time-to-stable.example.workers.dev/api/admin/check", {
+        method: "GET",
+        headers: { authorization: "Bearer test-secret-token" },
+      }),
+      env,
+      ctx,
+    );
+    assert.equal(wrongMethod.status, 405);
+    assert.equal(wrongMethod.headers.get("allow"), "POST");
+    assert.equal(wrongMethod.headers.get("cache-control"), "no-store");
+
+    await r2.put(
+      "sync-status.json",
+      JSON.stringify({
+        checkedAt: "2026-11-28T00:00:00Z",
+        currentBcdVersion: "6.0.0",
+        currentWebFeaturesVersion: "2.0.0",
+        latestBcdVersion: "6.0.1",
+        latestWebFeaturesVersion: "2.0.0",
+        updateAvailable: true,
+        error: "https://internal-secret.example/token=leak",
+      }),
+    );
+
+    const metaRes = await worker.fetch(
+      new Request("https://time-to-stable.example.workers.dev/api/meta"),
+      env,
+      ctx,
+    );
+    assert.equal(metaRes.status, 200);
+    const metaJson = (await metaRes.json()) as {
+      syncStatus: { hasError?: boolean; error?: string };
+    };
+    assert.equal(metaJson.syncStatus.hasError, true);
+    assert.equal(metaJson.syncStatus.error, undefined);
   });
 
   it("enforces auth on /api/admin/refresh and self-syncs BCD + web-features into R2", async () => {

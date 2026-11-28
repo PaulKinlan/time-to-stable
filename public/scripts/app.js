@@ -165,6 +165,15 @@ function initSvgTooltips() {
   });
 }
 
+function formatDaysJs(days) {
+  if (days === null || days === undefined || Number.isNaN(days)) return "—";
+  const rounded = Math.round(days);
+  if (rounded === 0) return "0d";
+  if (rounded < 365) return `${rounded.toLocaleString("en-US")}d`;
+  const years = rounded / 365.25;
+  return `${rounded.toLocaleString("en-US")}d (${years.toFixed(1)}y)`;
+}
+
 function renderRowHtml(row, browserMap, catLabels) {
   const href = `/feature/${encodeURIComponent(row.id)}`;
   const primary = row.name
@@ -227,14 +236,123 @@ function initProgressiveExplorer() {
   const statusEl = document.getElementById("explorer-status");
   const headingEl = document.getElementById("explorer-heading");
   const paginationWrap = document.getElementById("explorer-pagination-top");
+  const activeFilterEl = document.getElementById("explorer-active-filter");
   if (!section || !form || !tbody || !statusEl) return;
 
   const view = section.getAttribute("data-view") || "stable";
   const actionPath = section.getAttribute("data-action-path") || "/";
   const pageSize = section.getAttribute("data-page-size") || "25";
+  const selectedBrowsers = Array.from(
+    form.querySelectorAll('input[name^="browser-"]'),
+  ).map((el) => el.name.slice("browser-".length));
 
   let abortCtrl = null;
   let timer = null;
+
+  const syncDrillHighlights = (filters) => {
+    const fFirst = filters?.first || "";
+    const fLast = filters?.last || "";
+    const fHas = filters?.has || "";
+    const fMissing = filters?.missing || "";
+    document.querySelectorAll('a[data-drill-filter="1"]').forEach((el) => {
+      if (section.contains(el)) return;
+      const elFirst = el.getAttribute("data-first") || "";
+      const elLast = el.getAttribute("data-last") || "";
+      const elHas = el.getAttribute("data-has") || "";
+      const elMissing = el.getAttribute("data-missing") || "";
+      const matched =
+        view === "not-stable"
+          ? Boolean(fHas || fMissing) && elHas === fHas && elMissing === fMissing
+          : Boolean(fFirst || fLast) && elFirst === fFirst && elLast === fLast;
+      if (el.classList.contains("matrix-link")) {
+        el.classList.toggle("matrix-link-active", matched);
+      }
+      if (el.classList.contains("dir-card")) {
+        el.classList.toggle("dir-card-active", matched);
+      }
+    });
+  };
+
+  const renderActiveFilterBar = (data) => {
+    if (!activeFilterEl) return;
+    const filters = data.filters || {};
+    const bNames = data.browserNames || {};
+    const bShorts = data.browserShortNames || {};
+    const fFirst = filters.first || "";
+    const fLast = filters.last || "";
+    const fHas = filters.has || "";
+    const fMissing = filters.missing || "";
+    const isNotStable = view === "not-stable";
+    const hasFilter = isNotStable ? Boolean(fHas || fMissing) : Boolean(fFirst || fLast);
+
+    if (!hasFilter) {
+      activeFilterEl.hidden = true;
+      activeFilterEl.innerHTML = "";
+      return;
+    }
+
+    let label = "";
+    let swapAttrs = null;
+    let swapLabel = "";
+
+    if (isNotStable) {
+      if (fHas && fMissing) {
+        label = `In ${bNames[fHas] || fHas} → Missing in ${bNames[fMissing] || fMissing}`;
+        if (fHas !== fMissing) {
+          swapAttrs = { has: fMissing, missing: fHas, sort: "limbo", dir: "desc" };
+          swapLabel = `Compare reverse (${bShorts[fMissing] || fMissing} → missing ${bShorts[fHas] || fHas})`;
+        }
+      } else if (fHas) {
+        label = `Already in ${bNames[fHas] || fHas}`;
+      } else {
+        label = `Missing in ${bNames[fMissing] || fMissing}`;
+      }
+    } else if (fFirst && fLast) {
+      label = `First in ${bNames[fFirst] || fFirst} → Last in ${bNames[fLast] || fLast}`;
+      if (fFirst !== fLast) {
+        swapAttrs = { first: fLast, last: fFirst, sort: "days", dir: "desc" };
+        swapLabel = `Compare reverse (${bShorts[fLast] || fLast} → ${bShorts[fFirst] || fFirst})`;
+      }
+    } else if (fFirst) {
+      label = `First in ${bNames[fFirst] || fFirst}`;
+      if (selectedBrowsers.length === 2) {
+        const other = selectedBrowsers.find((b) => b !== fFirst);
+        if (other) {
+          swapAttrs = { first: other, last: fFirst, sort: "days", dir: "desc" };
+          swapLabel = `Compare reverse (${bShorts[other] || other} → ${bShorts[fFirst] || fFirst})`;
+        }
+      }
+    } else {
+      label = `Last in ${bNames[fLast] || fLast}`;
+      if (selectedBrowsers.length === 2) {
+        const other = selectedBrowsers.find((b) => b !== fLast);
+        if (other) {
+          swapAttrs = { first: fLast, last: other, sort: "days", dir: "desc" };
+          swapLabel = `Compare reverse (${bShorts[fLast] || fLast} → ${bShorts[other] || other})`;
+        }
+      }
+    }
+
+    const stats = data.filteredStats;
+    const statsParts = [`${data.pagination.total.toLocaleString("en-US")} features`];
+    if (stats && stats.count > 0) {
+      statsParts.push(`Median ${formatDaysJs(stats.median)}`);
+      statsParts.push(`IQR ${formatDaysJs(stats.iqr)}`);
+      statsParts.push(`p90 ${formatDaysJs(stats.p90)}`);
+      statsParts.push(`Max ${formatDaysJs(stats.max)}`);
+    }
+
+    const swapHtml = swapAttrs
+      ? `<a class="btn" href="#" data-drill-filter="1" data-first="${escapeText(swapAttrs.first || "")}" data-last="${escapeText(swapAttrs.last || "")}" data-has="${escapeText(swapAttrs.has || "")}" data-missing="${escapeText(swapAttrs.missing || "")}" data-sort="${escapeText(swapAttrs.sort)}" data-dir="${escapeText(swapAttrs.dir)}">⇄ ${escapeText(swapLabel)}</a>`
+      : "";
+    const curSort = document.getElementById("explorer-sort")?.value || "api";
+    const curDir = document.getElementById("explorer-dir")?.value || "asc";
+    const clearHtml = `<a class="btn" href="#" data-drill-filter="1" data-clear-browser-filter="1" data-sort="${escapeText(curSort)}" data-dir="${escapeText(curDir)}">Clear browser filter</a>`;
+
+    activeFilterEl.innerHTML = `<div class="active-filter-meta"><strong>${escapeText(label)}</strong> · ${escapeText(statsParts.join(" · "))}</div>
+      <div class="active-filter-actions">${swapHtml}${clearHtml}</div>`;
+    activeFilterEl.hidden = false;
+  };
 
   const fetchPage = async (page = 1) => {
     if (abortCtrl) abortCtrl.abort();
@@ -270,6 +388,9 @@ function initProgressiveExplorer() {
         headingEl.textContent = `Feature Explorer (${total.toLocaleString("en-US")} matching)`;
       }
       statusEl.textContent = `Showing page ${curPage} of ${totalPages} (${total.toLocaleString("en-US")} features)`;
+
+      renderActiveFilterBar(data);
+      syncDrillHighlights(data.filters);
 
       if (paginationWrap) {
         const controls = paginationWrap.querySelector(".pagination-controls");
@@ -316,12 +437,56 @@ function initProgressiveExplorer() {
     });
   }
 
-  ["explorer-cat", "explorer-baseline", "explorer-sort", "explorer-dir"].forEach(
-    (id) => {
+  [
+    "explorer-cat",
+    "explorer-baseline",
+    "explorer-first",
+    "explorer-last",
+    "explorer-has",
+    "explorer-missing",
+    "explorer-sort",
+    "explorer-dir",
+  ].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("change", () => fetchPage(1));
+  });
+
+  document.addEventListener("click", (ev) => {
+    const link = ev.target?.closest?.('a[data-drill-filter="1"]');
+    if (!link) return;
+    if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey || ev.button !== 0) {
+      return;
+    }
+    ev.preventDefault();
+
+    const clear = link.getAttribute("data-clear-browser-filter") === "1";
+    const setSelect = (id, val) => {
       const el = document.getElementById(id);
-      if (el) el.addEventListener("change", () => fetchPage(1));
-    },
-  );
+      if (el) el.value = val;
+    };
+
+    if (clear) {
+      setSelect("explorer-first", "");
+      setSelect("explorer-last", "");
+      setSelect("explorer-has", "");
+      setSelect("explorer-missing", "");
+    } else {
+      setSelect("explorer-first", link.getAttribute("data-first") || "");
+      setSelect("explorer-last", link.getAttribute("data-last") || "");
+      setSelect("explorer-has", link.getAttribute("data-has") || "");
+      setSelect("explorer-missing", link.getAttribute("data-missing") || "");
+    }
+
+    const sortVal = link.getAttribute("data-sort");
+    const dirVal = link.getAttribute("data-dir");
+    if (sortVal) setSelect("explorer-sort", sortVal);
+    if (dirVal) setSelect("explorer-dir", dirVal);
+
+    fetchPage(1);
+    if (!section.contains(link)) {
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
 
   if (paginationWrap) {
     paginationWrap.addEventListener("click", (ev) => {

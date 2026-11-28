@@ -127,9 +127,10 @@ export async function handleNotStableRoute(
     const matrixHtml = renderCrossTabMatrix(
       summary.missingCrossTab,
       ctx.browsers,
-      `Count of un-converged features present in Browser A (rows) but missing from Browser B (columns). Row totals count distinct un-converged features in Browser A; column totals count distinct features missing in Browser B.`,
+      `Count of un-converged features present in Browser A (rows) but missing from Browser B (columns). Click any count to inspect those features below.`,
       "In",
       "Missing in",
+      { kind: "has-missing", actionPath, query },
     );
 
     const explorerHtml = renderRawExplorerSection({
@@ -137,6 +138,7 @@ export async function handleNotStableRoute(
       actionPath,
       query,
       rows: pagedRows,
+      allFilteredRows: allRows,
       totalFilteredRows: totalFiltered,
       browsers: ctx.browsers,
     });

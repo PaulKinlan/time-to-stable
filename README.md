@@ -2,7 +2,8 @@
 
 Measure how long web platform features take to ship across browsers — powered by **MDN Browser Compat Data (`@mdn/browser-compat-data`)** and **W3C WebDX (`web-features` / Baseline)** running 100% on **Cloudflare Workers + Static Assets + R2 + Cron Triggers**.
 
-Read the introductory essay: [What is new on the web?](https://paul.kinlan.me/what-is-new-on-the-web/)
+- **Live site**: [https://timetostable.com](https://timetostable.com)
+- **Introductory essay**: [What is new on the web?](https://paul.kinlan.me/what-is-new-on-the-web/)
 
 ---
 
@@ -71,9 +72,10 @@ curl "http://localhost:8787/__scheduled"
    npm run deploy
    ```
 3. **Configuration (`wrangler.jsonc`) & Secrets**:
-   - `CANONICAL_HOST`: Set to your custom domain once attached (empty uses the incoming request host such as `*.workers.dev`).
-   - `REDIRECT_HOSTS`: Comma-separated legacy hosts that 301-redirect to `CANONICAL_HOST` preserving path and query.
+   - `CANONICAL_HOST`: Set to `timetostable.com` (empty falls back to the incoming request host). `http://` requests to `CANONICAL_HOST` upgrade to `https://`.
+   - `REDIRECT_HOSTS`: Comma-separated legacy/preview hosts (`*.deno.dev`, `*.workers.dev`, `www.timetostable.com`) that `301`/`308`-redirect to `CANONICAL_HOST` preserving path and query.
+   - `routes` is intentionally omitted from `wrangler.jsonc` so Custom Domains attached in the Cloudflare Dashboard remain untouched by `wrangler deploy` and Cloudflare Workers Builds.
    - `DATA_SOURCE_URL` *(optional)*: Direct shard mirror URL if overriding the default npm/CDN streaming self-sync.
-   - `SYNC_SECRET` *(Worker secret via `npx wrangler secret put SYNC_SECRET`)*: Bearer token authorizing `POST /api/admin/refresh`, `GET /api/admin/check`, and `POST /api/admin/sync`.
-4. **Optional Git Deployments**:
-   If you want push-to-deploy without GitHub Actions, connect the repository directly in the Cloudflare Dashboard via **Workers Builds**.
+   - `SYNC_SECRET` *(optional Worker secret via `npx wrangler secret put SYNC_SECRET`)*: Bearer token authorizing `POST /api/admin/refresh`, `POST /api/admin/check`, and `POST /api/admin/sync`. Remove `SYNC_SECRET` via `npx wrangler secret delete SYNC_SECRET` to disable all HTTP `/api/admin/*` endpoints while keeping the 6-hour Cloudflare Cron Trigger active.
+4. **Git Deployments (Cloudflare Workers Builds)**:
+   When connected in the Cloudflare Dashboard via **Workers Builds**, pushes to `main` redeploy Worker code and static assets (`npm run deploy` runs `npm run build:data && wrangler deploy`), while the 6-hour Cron Trigger keeps R2 data updated autonomously without needing commits.
